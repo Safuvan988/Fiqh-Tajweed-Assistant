@@ -1,7 +1,39 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quranfiqh/core/theme/app_theme.dart';
+import 'package:quranfiqh/models/chat_message.dart';
+import 'package:quranfiqh/widgets/answer_card.dart';
+import 'package:quranfiqh/services/gemini_service.dart';
 
-class AskScreen extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────
+//  Ask Screen
+// ─────────────────────────────────────────────────────────────
+
+final List<ChatMessage> _initialMessages = [
+  ChatMessage(
+    sender: MessageSender.bot,
+    text:
+        'Assalamu Alaikum! 👋\nI\'m your Fiqh & Tajweed Assistant. Ask me any Islamic ruling or recitation question.',
+    translations: {
+      AppLanguage.en: const LocalizedContent(
+        text:
+            'Assalamu Alaikum! 👋\nI\'m your Fiqh & Tajweed Assistant. Ask me any Islamic ruling.',
+      ),
+      AppLanguage.ml: const LocalizedContent(
+        text:
+            'അസ്സലാമു അലൈക്കും! 👋\nഞാൻ നിങ്ങളുടെ ഫിഖ്ഹ് സാമ്രാജ്യമാണ്. നിങ്ങൾക്ക് എന്ത് സംശയവും ചോദിക്കാം.',
+      ),
+      AppLanguage.ar: const LocalizedContent(
+        text: 'السلام عليكم! 👋\nأنا مساعدك في الفقه والتجويد. اسألني أي سؤال.',
+      ),
+    },
+  ),
+];
+
+class AskScreen extends StatefulWidget {
   const AskScreen({super.key});
 
   @override
@@ -13,9 +45,12 @@ class _AskScreenState extends State<AskScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = List.from(_initialMessages);
   bool _isTyping = false;
+  bool _isAILoading = false; // 🔥 API Lock
   List<dynamic> _masaalaData = [];
-  final AiService _aiService = AiService();
 
+  // 🎬 Streaming animation state
+  String? _pendingStreamText;
+  ChatMessage? _pendingBotMessage;
 
   @override
   void initState() {
@@ -37,118 +72,203 @@ class _AskScreenState extends State<AskScreen> {
     }
   }
 
-  AppLanguage _detectLanguage(String text) {
-    if (RegExp(r'[\u0D00-\u0D7F]').hasMatch(text)) return AppLanguage.ml;
-    if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) return AppLanguage.ar;
-    return AppLanguage.en;
-  }
-
   Map<String, dynamic>? _findBestMatch(String query) {
     if (_masaalaData.isEmpty) return null;
 
     final normalizedQuery = query.toLowerCase().trim();
     final queryWords = normalizedQuery
-        .split(RegExp(r'\s+'))
-        .where((s) => s.length > 2)
-        .toList();
+        .split(RegExp(r'[\s\?\!\.]+'))
+        .where((s) => s.length > 1)
+        .toSet();
+
+    if (queryWords.isEmpty) return null;
 
     Map<String, dynamic>? bestMatch;
-    int maxScore = 0;
+    double maxScore = 0.0;
 
     for (var item in _masaalaData) {
-      int score = 0;
+      double score = 0.0;
 
-      // 1. Keyword matching (High weight)
+      // 1. Exact Question Match (Huge Bonus)
+      final questions = item['question'] as Map<String, dynamic>? ?? {};
+      for (var q in questions.values) {
+        if (q.toString().toLowerCase().trim() == normalizedQuery) {
+          score += 100.0;
+          break;
+        }
+      }
+
+      // 2. Keyword Match (Strict)
       final keywords =
           (item['keywords'] as List?)
               ?.map((k) => k.toString().toLowerCase())
               .toList() ??
           [];
       for (var kw in keywords) {
-        if (normalizedQuery.contains(kw)) {
-          score += 10;
+        if (kw.isEmpty) continue;
+        if (queryWords.contains(kw) || normalizedQuery == kw) {
+          score += 20.0;
+        } else if (normalizedQuery.contains(kw) && kw.length > 3) {
+          score += 5.0;
         }
       }
 
-      // 2. Question matching (Highest weight)
-      final question = item['question']?.toString().toLowerCase() ?? '';
-      if (question.contains(normalizedQuery)) {
-        score += 15;
-      }
-
-      // 3. Incremental word-based score
+      // 3. Word Coverage
+      int wordHits = 0;
       for (var word in queryWords) {
-        if (keywords.any((kw) => kw.contains(word))) score += 5;
-        if (question.contains(word)) score += 3;
+        if (keywords.contains(word)) {
+          wordHits++;
+        }
       }
 
+      // Calculate coverage ratio to favor items that match more of the query
+      double coverage = wordHits / queryWords.length;
+      score += coverage * 30.0;
+
+      // Ensure we don't match on "hi" or short greetings unless they are explicitly in keywords
       if (score > maxScore) {
         maxScore = score;
         bestMatch = item;
       }
     }
 
-    return maxScore >= 8 ? bestMatch : null;
+    // Threshold: a good match should have at least some keyword hits or high coverage
+    return maxScore >= 15.0 ? bestMatch : null;
   }
 
-  void _handleQuestion(String text) {
-    _controller.text = text;
-    _sendMessage();
-  }
-
-  void _sendMessage() {
+  void _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isAILoading) return; // 🔥 Prevents duplicate calls
 
-    final usedLang = _detectLanguage(text);
+    final usedLang = AppLanguage.en; // GeminiService auto-detects language
 
+    _controller.clear();
     setState(() {
       _messages.add(ChatMessage(sender: MessageSender.user, text: text));
       _isTyping = true;
+      _isAILoading = true; // 🔥 Lock ON
     });
-    _controller.clear();
     _scrollToBottom();
 
     Future.delayed(const Duration(milliseconds: 600), () async {
       if (!mounted) return;
 
-      final match = _findBestMatch(text);
-      
-      // Use AI to get a rephrased or polite response
-      final rephrasedText = await _aiService.rephraseResponse(
-        userQuery: text,
-        lang: usedLang,
-        matchData: match,
-      );
+      try {
+        final match = _findBestMatch(text);
+        String responseText;
+        Map<String, dynamic>? aiData;
 
-      ChatMessage responseMessage;
+        if (match != null) {
+          // Build response text directly from local data (Fallback practice)
+          final langKey = usedLang == AppLanguage.ml
+              ? 'ml'
+              : (usedLang == AppLanguage.ar ? 'ar' : 'en');
+          final answer = match['answer'][langKey] ?? match['answer']['en'];
+          final fiqh = match['fiqh'][langKey] ?? match['fiqh']['en'];
 
-      if (match != null) {
-        responseMessage = ChatMessage.fromJson(match);
-        // Overwrite the default short text with the conversational AI response
-        responseMessage = ChatMessage(
-          sender: MessageSender.bot,
-          text: rephrasedText,
-          translations: responseMessage.translations,
-          currentLang: usedLang,
-          quranArabic: responseMessage.quranArabic,
-          quranReference: responseMessage.quranReference,
-          hadithArabic: responseMessage.hadithArabic,
-          hadithReference: responseMessage.hadithReference,
-        );
-      } else {
-        responseMessage = ChatMessage(
-          sender: MessageSender.bot,
-          text: rephrasedText,
-          currentLang: usedLang,
-        );
+          responseText = "Ruling: $answer\n\nExplanation: $fiqh";
+
+          final quran = match['quran'];
+          if (quran != null && quran['reference'] != null) {
+            responseText += "\n\nQuran Reference: ${quran['reference']}";
+          }
+        } else {
+          // 1. Check for common greetings to reduce API usage
+          final normalizedText = text.toLowerCase();
+          final greetings = [
+            'hi',
+            'hello',
+            'salam',
+            'assalamu',
+            'hey',
+            'ഹായ്',
+            'സലാം',
+          ];
+          final isGreeting =
+              greetings.any((g) => normalizedText.contains(g)) &&
+              normalizedText.length < 15;
+
+          if (isGreeting) {
+            responseText =
+                "Assalamu Alaikum! How can I help you today with Shafi'i Fiqh or Tajweed questions?";
+          } else {
+            // 2. Use GeminiService directly
+            aiData = await GeminiService.getAnswer(text);
+            responseText = aiData['ruling'] ?? "Something went wrong.";
+          }
+        }
+
+        ChatMessage responseMessage;
+
+        if (match != null) {
+          responseMessage = ChatMessage.fromJson(match);
+          // Force the text to match what we constructed
+          responseMessage = ChatMessage(
+            sender: MessageSender.bot,
+            text: responseText,
+            translations: responseMessage.translations,
+            currentLang: usedLang,
+            quranArabic: responseMessage.quranArabic,
+            quranReference: responseMessage.quranReference,
+            hadithArabic: responseMessage.hadithArabic,
+            hadithReference: responseMessage.hadithReference,
+          );
+        } else if (aiData != null) {
+          // Map the AI JSON to structured ChatMessage for rich UI display
+          final content = LocalizedContent(
+            text: responseText,
+            ruling: aiData['ruling'],
+            fiqhExplanation: aiData['explanation'],
+            quranTranslation: aiData['quran_translation'],
+            hadithTranslation: aiData['hadith_translation'],
+          );
+
+          responseMessage = ChatMessage(
+            sender: MessageSender.bot,
+            text: responseText,
+            translations: {usedLang: content},
+            currentLang: usedLang,
+            quranArabic:
+                (aiData['quran_arabic'] != null && aiData['quran_arabic'] != "")
+                ? aiData['quran_arabic']
+                : null,
+            quranReference:
+                (aiData['quran_reference'] != null &&
+                    aiData['quran_reference'] != "")
+                ? aiData['quran_reference']
+                : null,
+            hadithArabic:
+                (aiData['hadith_arabic'] != null && aiData['hadith_arabic'] != "")
+                ? aiData['hadith_arabic']
+                : null,
+            hadithReference:
+                (aiData['hadith_reference'] != null && aiData['hadith_reference'] != "")
+                ? aiData['hadith_reference']
+                : null,
+          );
+        } else {
+          responseMessage = ChatMessage(
+            sender: MessageSender.bot,
+            text: responseText,
+            currentLang: usedLang,
+          );
+        }
+
+        setState(() {
+          _isTyping = false;
+          _isAILoading = false; // 🔥 Lock OFF
+          // 🎬 Begin typewriter animation
+          _pendingStreamText = responseText;
+          _pendingBotMessage = responseMessage;
+        });
+        _scrollToBottom();
+      } catch (e) {
+        setState(() {
+          _isTyping = false;
+          _isAILoading = false; // 🔥 Lock OFF
+        });
+        debugPrint("Error sending message: $e");
       }
-
-      setState(() {
-        _isTyping = false;
-        _messages.add(responseMessage);
-      });
-      _scrollToBottom();
     });
   }
 
@@ -164,6 +284,29 @@ class _AskScreenState extends State<AskScreen> {
     });
   }
 
+  void _onStreamingComplete() {
+    if (!mounted) return;
+    setState(() {
+      if (_pendingBotMessage != null) {
+        _messages.add(_pendingBotMessage!);
+      }
+      _pendingStreamText = null;
+      _pendingBotMessage = null;
+    });
+    _scrollToBottom();
+  }
+
+  void _resetChat() {
+    setState(() {
+      _messages.clear();
+      _messages.addAll(_initialMessages);
+      _pendingStreamText = null;
+      _pendingBotMessage = null;
+      _isTyping = false;
+      _isAILoading = false;
+    });
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -173,110 +316,142 @@ class _AskScreenState extends State<AskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // ── Header ──────────────────────────────────────────
-        AppBar(
-          backgroundColor: AppColors.primary,
-          elevation: 0,
-          centerTitle: false,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Ask a Question'),
-              Text(
-                'Fiqh & Tajweed Assistant',
-                style: AppTextStyles.englishCaption(
-                  fontSize: 11,
-                  color: AppColors.textOnPrimary.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.more_vert_rounded),
-              onPressed: () {},
-            ),
-          ],
-        ),
-
-        // ── Chat area ───────────────────────────────────────
-        Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: _messages.length + (_isTyping ? 1 : 0) + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20, top: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Categories',
-                        style: AppTextStyles.englishDisplay(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _CategoryItem(
-                              emoji: '💧',
-                              assetPath:
-                                  'assets/icons/book-open-02-stroke-rounded.svg',
-                              label: 'Wudu',
-                              color: const Color(0xFF2196F3),
-                              onTap: () => _handleQuestion('What breaks wudu?'),
-                            ),
-                            const SizedBox(width: 12),
-                            _CategoryItem(
-                              emoji: '🕌',
-                              assetPath:
-                                  'assets/icons/chat-01-stroke-rounded.svg',
-                              label: 'Salah',
-                              color: AppColors.primary,
-                              onTap: () =>
-                                  _handleQuestion('How to perform Qasr?'),
-                            ),
-                            const SizedBox(width: 12),
-                            _CategoryItem(
-                              emoji: '🌙',
-                              label: 'Fasting',
-                              color: const Color(0xFF9C27B0),
-                              onTap: () =>
-                                  _handleQuestion('When to start fast?'),
-                            ),
-                            const SizedBox(width: 12),
-                            _CategoryItem(
-                              emoji: '🤲',
-                              label: 'Zakah',
-                              color: AppColors.gold,
-                              onTap: () => _handleQuestion('What is Nisab?'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          // ── Header Actions ──────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: _resetChat,
+                  icon: SvgPicture.asset(
+                    'assets/icons/bubble-chat-add-stroke-rounded.svg',
+                    width: 16,
+                    height: 16,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.primary,
+                      BlendMode.srcIn,
+                    ),
                   ),
-                );
-              }
-              final messageIndex = index - 1;
-              if (messageIndex == _messages.length) return _TypingIndicator();
-              return _ChatBubble(message: _messages[messageIndex]);
-            },
+                  label: Text(
+                    'New Chat',
+                    style: AppTextStyles.englishCaption(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.05),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // ── Input bar ───────────────────────────────────────
-        _InputBar(controller: _controller, onSend: _sendMessage),
-      ],
+          // ── Chat area ───────────────────────────────────────
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount:
+                  _messages.length +
+                  (_isTyping ? 1 : 0) +
+                  (_pendingStreamText != null ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  // Welcome Message + Centered Prompt if no messages yet
+                  final onlyInitial =
+                      _messages.length == 1 &&
+                      _messages[0].text == _initialMessages[0].text;
+
+                  return Column(
+                    children: [
+                      _ChatBubble(message: _messages[0]),
+                      if (onlyInitial)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 80),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: SvgPicture.asset(
+                                    'assets/icons/bubble-chat-add-stroke-rounded.svg',
+                                    width: 40,
+                                    height: 40,
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.primary,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Ask a Question',
+                                  style: AppTextStyles.englishDisplay(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Type any question about Shafi\'i Fiqh\nor Tajweed below.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.englishBody(
+                                    fontSize: 14,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                // Regular messages
+                if (index < _messages.length) {
+                  return _ChatBubble(message: _messages[index]);
+                }
+
+                // 🎬 Typewriter streaming bubble
+                if (_pendingStreamText != null && index == _messages.length) {
+                  return _StreamingBubble(
+                    key: const ValueKey('streaming'),
+                    fullText: _pendingStreamText!,
+                    onComplete: _onStreamingComplete,
+                  );
+                }
+
+                // Bouncing dots (API loading)
+                return _TypingIndicator();
+              },
+            ),
+          ),
+
+          // ── Input bar ───────────────────────────────────────
+          _InputBar(controller: _controller, onSend: _sendMessage),
+        ],
+      ),
     );
   }
 }
@@ -292,14 +467,200 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ask')),
-      body: Center(
+    final isBot = message.sender == MessageSender.bot;
+    final hasAnswer =
+        message.translations != null &&
+        message.translations![message.currentLang] != null;
+
+    if (isBot && hasAnswer) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: AnswerCard(
+          data: message.translations![message.currentLang]!,
+          quranArabic: message.quranArabic,
+          quranReference: message.quranReference,
+          hadithArabic: message.hadithArabic,
+          hadithReference: message.hadithReference,
+        ),
+      );
+    }
+
+    return Align(
+      alignment: isBot ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isBot ? AppColors.botMsgBg : AppColors.userMsgBg,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isBot ? 4 : 16),
+            bottomRight: Radius.circular(isBot ? 16 : 4),
+          ),
+          boxShadow: [
+            if (isBot)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
         child: Text(
           message.text,
           style: AppTextStyles.englishBody(
-            color: isBot ? AppColors.textPrimary : AppColors.textOnPrimary,
+            color: isBot ? AppColors.botMsgText : AppColors.userMsgText,
             fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Streaming Typewriter Bubble
+// ─────────────────────────────────────────────────────────────
+
+class _StreamingBubble extends StatefulWidget {
+  final String fullText;
+  final VoidCallback onComplete;
+
+  const _StreamingBubble({
+    super.key,
+    required this.fullText,
+    required this.onComplete,
+  });
+
+  @override
+  State<_StreamingBubble> createState() => _StreamingBubbleState();
+}
+
+class _StreamingBubbleState extends State<_StreamingBubble> {
+  String _displayed = '';
+  int _charIndex = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTyping();
+  }
+
+  void _startTyping() {
+    _timer = Timer.periodic(const Duration(milliseconds: 18), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_charIndex < widget.fullText.length) {
+        setState(() {
+          _charIndex++;
+          _displayed = widget.fullText.substring(0, _charIndex);
+        });
+      } else {
+        timer.cancel();
+        widget.onComplete();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.botMsgBg,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Flexible(
+              child: Text(
+                _displayed,
+                style: AppTextStyles.englishBody(
+                  color: AppColors.botMsgText,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const _BlinkingCursor(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlinkingCursor extends StatefulWidget {
+  const _BlinkingCursor();
+
+  @override
+  State<_BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<_BlinkingCursor>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 530),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => Opacity(
+        opacity: _ctrl.value,
+        child: Container(
+          width: 2,
+          height: 15,
+          margin: const EdgeInsets.only(left: 3, bottom: 1),
+          decoration: BoxDecoration(
+            color: AppColors.botMsgText,
+            borderRadius: BorderRadius.circular(1),
           ),
         ),
       ),
@@ -394,32 +755,47 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.divider, width: 0.8)),
-      ),
+      decoration: const BoxDecoration(color: AppColors.background),
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.divider, width: 0.8),
-              ),
-              child: TextField(
-                controller: controller,
-                onSubmitted: (_) => onSend(),
-                decoration: const InputDecoration(
-                  hintText: 'Type your question...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textLight,
+            child: TextField(
+              controller: controller,
+              onSubmitted: (_) => onSend(),
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Type your question...',
+                hintStyle: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textLight,
+                ),
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(
+                    color: AppColors.divider,
+                    width: 0.8,
                   ),
                 ),
-                style: const TextStyle(fontSize: 14),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(
+                    color: AppColors.divider,
+                    width: 0.8,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.2,
+                  ),
+                ),
               ),
             ),
           ),
@@ -430,80 +806,19 @@ class _InputBar extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(
-                Icons.send_rounded,
-                color: Colors.white,
-                size: 20,
+              icon: SvgPicture.asset(
+                'assets/icons/sent-stroke-rounded.svg',
+                width: 18,
+                height: 18,
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
               ),
               onPressed: onSend,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  Category Item
-// ─────────────────────────────────────────────────────────────
-
-class _CategoryItem extends StatelessWidget {
-  final String emoji;
-  final String label;
-  final Color color;
-  final String? assetPath;
-  final VoidCallback onTap;
-
-  const _CategoryItem({
-    required this.emoji,
-    required this.label,
-    required this.color,
-    this.assetPath,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 0.8),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: assetPath != null
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: SvgPicture.asset(
-                        assetPath!,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    )
-                  : Text(emoji, style: const TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: AppTextStyles.englishDisplay(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.9),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

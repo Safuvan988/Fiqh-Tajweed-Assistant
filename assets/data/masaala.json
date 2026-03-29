@@ -1,0 +1,267 @@
+[
+  {
+    "id": "wudu_touch",
+    "keywords": [
+      "wudu",
+      "touch",
+      "woman",
+      "വുദു",
+      "സ്പർശനം"
+    ],
+    "question": {
+      "en": "Does touching a woman break wudu?",
+      "ml": "സ്ത്രീയെ സ്പർശിച്ചാൽ വുദു തകരുമോ?",
+      "ar": "هل لمس المرأة ينقض الوضوء؟"
+    },
+    "answer": {
+      "en": "It breaks wudu.",
+      "ml": "വുദു തകരും.",
+      "ar": "ينقض الوضوء."
+    },
+    "quran": {
+      "arabic": "أَوْ لَامَسْتُمُ النِّسَاءَ",
+      "reference": "Surah An-Nisa 4:43"
+    },
+    "hadith": "—",
+    "fiqh": {
+      "en": "In the Shafi‘i school, physical touch invalidates wudu.",
+      "ml": "ഷാഫിഈ മദ്ഹബിൽ സ്പർശനം വുദു തകർക്കും.",
+      "ar": "في المذهب الشافعي اللمس ينقض الوضوء."
+    }
+  },
+  {
+    "id": "wudu_sleep",
+    "keywords": [
+      "wudu",
+      "sleep",
+      "ഉറക്കം"
+    ],
+    "question": {
+      "en": "Does sleeping break wudu?",
+      "ml": "ഉറങ്ങുന്നത് വുദു തകർക്കുമോ?",
+      "ar": "هل النوم ينقض الوضوء؟"
+    },
+    "answer": {
+      "en": "Yes, if one loses awareness.",
+      "ml": "ബോധം നഷ്ടപ്പെട്ടാൽ വുദു തകരും.",
+      "ar": "نعم إذا زال الإدراك."
+    },
+    "quran": null,
+    "hadith": "Sahih Muslim",
+    "fiqh": {
+      "en": "Deep sleep invalidates wudu in Shafi‘i fiqh.",
+      "ml": "ആഴത്തിലുള്ള ഉറക്കം വുദു തകർക്കും.",
+      "ar": "النوم العميق ينقض الوضوء."
+    }
+  },
+  {
+    "id": "wudu_bleeding",
+    "keywords": [
+      "wudu",
+      "bleeding",
+      "രക്തം"
+    ],
+    "question": {
+      "en": "Does bleeding break wudu?",
+      "ml": "രക്തസ്രാവം വുദു തകർക്കുമോ?",
+      "ar": "هل خروج الدم ينقض الوضوء؟"
+    },
+    "answer": {
+      "en": "No, it does not break wudu.",
+      "ml": "ഇല്ല, വുദു തകരില്ല.",
+      "ar": "لا ينقض الوضوء."
+    },
+    "quran": null,
+    "hadith": "—",
+    "fiqh": {
+      "en": "Bleeding does not invalidate wudu in Shafi‘i school.",
+      "ml": "ഷാഫിഈ മദ്ഹബിൽ രക്തസ്രാവം വുദു തകർക്കില്ല.",
+      "ar": "خروج الدم لا ينقض الوضوء."
+    }
+  },
+  {
+    "id": "prayer_without_wudu",
+    "keywords": [
+      "prayer",
+      "wudu",
+      "നമസ്കാരം"
+    ],
+    "question": {
+      "en": "Can I pray without wudu?",
+      "ml": "വുദുവില്ലാതെ നമസ്കരിക്കാമോ?",
+      "ar": "هل يجوز الصلاة بدون وضوء؟"
+    },
+    "answer": {
+      "en": "No, prayer is not valid.",
+      "ml": "ഇല്ല, നമസ്കാരം സാധുവല്ല.",
+      "ar": "لا تصح الصلاة."
+    },
+    "quran": {
+      "arabic": "إِذَا قُمْتُمْ إِلَى الصَّلَاةِ فَاغْسِلُوا",
+      "reference": "Surah Al-Ma'idah 5:6"
+    },
+    "hadith": "Sahih Muslim",
+    "fiqh": {
+      "en": "Wudu is a condition for valid prayer.",
+      "ml": "വുദു നമസ്കാരത്തിന്റെ നിർബന്ധ ഘടകമാണ്.",
+      "ar": "الوضوء شرط لصحة الصلاة."
+    }
+  },
+  {
+    "id": "fasting_mistake",
+    "keywords": [
+      "fasting",
+      "eat",
+      "forget",
+      "നോമ്പ്"
+    ],
+    "question": {
+      "en": "If I eat by mistake while fasting?",
+      "ml": "നോമ്പിൽ മറന്ന് ഭക്ഷിച്ചാൽ?",
+      "ar": "إذا أكلت ناسياً في الصيام؟"
+    },
+    "answer": {
+      "en": "Your fast is still valid.",
+      "ml": "നോമ്പ് സാധുവാണ്.",
+      "ar": "صومك صحيح."
+    },
+    "quran": null,
+    "hadith": "Sahih al-Bukhari",
+    "fiqh": {
+      "en": "Eating forgetfully does not break the fast.",
+      "ml": "മറന്ന് ഭക്ഷിക്കുന്നത് നോമ്പ് തകർക്കില്ല.",
+      "ar": "الأكل نسياناً لا يفطر."
+    }
+  },
+  {
+    "id": "prayer_time",
+    "keywords": [
+      "prayer",
+      "time",
+      "സമയം"
+    ],
+    "question": {
+      "en": "Can I pray before time?",
+      "ml": "സമയത്തിന് മുമ്പ് നമസ്കരിക്കാമോ?",
+      "ar": "هل يجوز الصلاة قبل الوقت؟"
+    },
+    "answer": {
+      "en": "No, it is not valid.",
+      "ml": "ഇല്ല, സാധുവല്ല.",
+      "ar": "لا تصح."
+    },
+    "quran": {
+      "arabic": "إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا",
+      "reference": "Surah An-Nisa 4:103"
+    },
+    "hadith": "—",
+    "fiqh": {
+      "en": "Prayer must be performed within its time.",
+      "ml": "നമസ്കാരം നിർദ്ദിഷ്ട സമയത്ത് വേണം.",
+      "ar": "الصلاة لها وقت محدد."
+    }
+  },
+  {
+    "id": "wudu_laugh",
+    "keywords": [
+      "wudu",
+      "laugh",
+      "ചിരി"
+    ],
+    "question": {
+      "en": "Does laughing break wudu?",
+      "ml": "ചിരിച്ചാൽ വുദു തകരുമോ?",
+      "ar": "هل الضحك ينقض الوضوء؟"
+    },
+    "answer": {
+      "en": "No, it does not.",
+      "ml": "ഇല്ല, തകരില്ല.",
+      "ar": "لا ينقض."
+    },
+    "quran": null,
+    "hadith": "—",
+    "fiqh": {
+      "en": "Laughing does not invalidate wudu in Shafi‘i school.",
+      "ml": "ചിരിയാൽ വുദു തകരില്ല.",
+      "ar": "الضحك لا ينقض الوضوء."
+    }
+  },
+  {
+    "id": "fasting_vomit",
+    "keywords": [
+      "fasting",
+      "vomit",
+      "വാന്തി"
+    ],
+    "question": {
+      "en": "Does vomiting break fast?",
+      "ml": "വാന്തി നോമ്പ് തകർക്കുമോ?",
+      "ar": "هل القيء يفطر؟"
+    },
+    "answer": {
+      "en": "Only if intentional.",
+      "ml": "ഉദ്ദേശപൂർവ്വം ചെയ്താൽ മാത്രം.",
+      "ar": "إذا كان عمداً فقط."
+    },
+    "quran": null,
+    "hadith": "Sunan Abu Dawood",
+    "fiqh": {
+      "en": "Unintentional vomiting does not break fast.",
+      "ml": "അറിയാതെ വാന്തിയുണ്ടെങ്കിൽ നോമ്പ് തകരില്ല.",
+      "ar": "القيء غير المتعمد لا يفطر."
+    }
+  },
+  {
+    "id": "prayer_talk",
+    "keywords": [
+      "prayer",
+      "talk",
+      "സംസാരം"
+    ],
+    "question": {
+      "en": "Does talking invalidate prayer?",
+      "ml": "നമസ്കാരത്തിൽ സംസാരിച്ചാൽ?",
+      "ar": "هل الكلام يبطل الصلاة؟"
+    },
+    "answer": {
+      "en": "Yes, it invalidates prayer.",
+      "ml": "അതെ, നമസ്കാരം തകരും.",
+      "ar": "نعم تبطل الصلاة."
+    },
+    "quran": null,
+    "hadith": "Sahih Muslim",
+    "fiqh": {
+      "en": "Speech unrelated to prayer invalidates it.",
+      "ml": "നമസ്കാരവുമായി ബന്ധമില്ലാത്ത സംസാരങ്ങൾ അത് തകർക്കും.",
+      "ar": "الكلام يبطل الصلاة."
+    }
+  },
+  {
+    "id": "tayammum",
+    "keywords": [
+      "tayammum",
+      "water",
+      "തയമ്മും"
+    ],
+    "question": {
+      "en": "Can I do tayammum without water?",
+      "ml": "വെള്ളമില്ലെങ്കിൽ തയമ്മും ചെയ്യാമോ?",
+      "ar": "هل يجوز التيمم عند عدم الماء؟"
+    },
+    "answer": {
+      "en": "Yes, it is allowed.",
+      "ml": "അതെ, അനുവദനീയമാണ്.",
+      "ar": "نعم يجوز."
+    },
+    "quran": {
+      "arabic": "فَلَمْ تَجِدُوا مَاءً فَتَيَمَّمُوا",
+      "reference": "Surah An-Nisa 4:43"
+    },
+    "hadith": "—",
+    "fiqh": {
+      "en": "Tayammum is allowed when water is unavailable.",
+      "ml": "വെള്ളമില്ലെങ്കിൽ തയമ്മും അനുവദനീയമാണ്.",
+      "ar": "التيمم جائز عند فقد الماء."
+    }
+  }
+]

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quranfiqh/core/theme/app_theme.dart';
 import 'package:quranfiqh/screens/ask/ask_screen.dart';
 import 'package:quranfiqh/screens/home/home_screen.dart';
@@ -27,28 +28,23 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   static const List<_NavItem> _navItems = [
     _NavItem(
-      icon: Icons.home_rounded,
-      outlineIcon: Icons.home_outlined,
+      assetPath: 'assets/icons/home-07-stroke-rounded.svg',
       label: 'Home',
     ),
     _NavItem(
-      icon: Icons.chat_bubble_rounded,
-      outlineIcon: Icons.chat_bubble_outline_rounded,
+      assetPath: 'assets/icons/chat-01-stroke-rounded.svg',
       label: 'Ask',
     ),
     _NavItem(
-      icon: Icons.auto_stories_rounded,
-      outlineIcon: Icons.auto_stories_outlined,
+      assetPath: 'assets/icons/book-open-02-stroke-rounded.svg',
       label: 'Learn',
     ),
     _NavItem(
-      icon: Icons.headphones_rounded,
-      outlineIcon: Icons.headphones_outlined,
+      assetPath: 'assets/icons/headphones-stroke-rounded.svg',
       label: 'Tajweed',
     ),
     _NavItem(
-      icon: Icons.settings_rounded,
-      outlineIcon: Icons.settings_outlined,
+      assetPath: 'assets/icons/settings-03-stroke-rounded.svg',
       label: 'Settings',
     ),
   ];
@@ -71,14 +67,9 @@ class _MainScaffoldState extends State<MainScaffold> {
 //  Nav Item model
 // ─────────────────────────────────────────────────────────────
 class _NavItem {
-  final IconData icon;
-  final IconData outlineIcon;
+  final String assetPath;
   final String label;
-  const _NavItem({
-    required this.icon,
-    required this.outlineIcon,
-    required this.label,
-  });
+  const _NavItem({required this.assetPath, required this.label});
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -119,7 +110,7 @@ class _AppBottomNav extends StatelessWidget {
               final selected = i == currentIndex;
               final item = items[i];
               return _NavButton(
-                icon: selected ? item.icon : item.outlineIcon,
+                assetPath: item.assetPath,
                 label: item.label,
                 selected: selected,
                 onTap: () => onTap(i),
@@ -136,13 +127,13 @@ class _AppBottomNav extends StatelessWidget {
 //  Individual nav button with animated indicator
 // ─────────────────────────────────────────────────────────────
 class _NavButton extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _NavButton({
-    required this.icon,
+    required this.assetPath,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -159,8 +150,7 @@ class _NavButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.10)
-              : Colors.transparent,
+              ? AppColors.primary.withValues(alpha: .10): Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -168,11 +158,18 @@ class _NavButton extends StatelessWidget {
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child: Icon(
-                icon,
+              child: SizedBox(
+                width: 24,
+                height: 24,
                 key: ValueKey(selected),
-                color: selected ? AppColors.primary : AppColors.textLight,
-                size: 24,
+                child: SvgPicture.asset(
+                  assetPath,
+                  semanticsLabel: label,
+                  colorFilter: ColorFilter.mode(
+                    selected ? AppColors.primary : AppColors.textLight,
+                    BlendMode.srcIn,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 3),
@@ -193,3 +190,5 @@ class _NavButton extends StatelessWidget {
     );
   }
 }
+
+

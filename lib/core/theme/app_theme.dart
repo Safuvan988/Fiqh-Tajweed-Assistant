@@ -7,18 +7,18 @@ import 'package:google_fonts/google_fonts.dart';
 class AppColors {
   AppColors._();
 
-  // Primary
-  static const Color primary = Color(0xFF0F3D2E);       // Deep green
-  static const Color primaryLight = Color(0xFF1A5C45);  // Slightly lighter green
-  static const Color primaryDark = Color(0xFF082618);   // Darker green
+  // Primary (Premium Charcoal)
+  static const Color primary = Color(0xFF111111); // Deep Charcoal
+  static const Color primaryLight = Color(0xFF222222);
+  static const Color primaryDark = Color(0xFF000000);
 
-  // Accent
-  static const Color gold = Color(0xFFCB9B2E);          // Gold accent
-  static const Color lightGreen = Color(0xFF4CAF7A);    // Light green accent
+  // Accent (Premium Gold)
+  static const Color gold = Color(0xFFCB9B2E); // Gold accent
+  static const Color goldAccent = Color(0xFFE6C76E); // Soft Gold
 
   // Background / Surface
-  static const Color background = Color(0xFFF8F3EC);    // Off-white / soft beige
-  static const Color surface = Color(0xFFFDF8F2);       // Slightly lighter surface
+  static const Color background = Color(0xFFF8F3EC); // Off-white / soft beige
+  static const Color surface = Color(0xFFFDF8F2); // Slightly lighter surface
   static const Color cardBackground = Color(0xFFFAF5EE);
 
   // Text
@@ -27,6 +27,24 @@ class AppColors {
   static const Color textLight = Color(0xFF8A8A8A);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
   static const Color textOnAccent = Color(0xFF0F3D2E);
+
+  // Dark Mode Colors
+  static const Color darkBackground = Color(0xFF0F0F0F); // Deep Charcoal
+  static const Color darkSurface = Color(0xFF1A1A1A); // Slightly lighter
+  static const Color darkCard = Color(0xFF222222);
+  static const Color darkTextPrimary = Color(0xFFF5F5F5);
+  static const Color darkTextSecondary = Color(0xFFB0B0B0);
+  static const Color darkDivider = Color(0xFF333333);
+  static const Color darkBorder = Color(0xFF444444);
+
+  // Chat UI
+  static const Color userMsgBg = Color(0xFFD4AF37);
+  static const Color userMsgText = Color(0xFF0B0F14);
+  static const Color botMsgBg = Color(0xFFFDF8F2); // Premium light surface
+  static const Color botMsgText = Color(0xFF1A1A1A); // textPrimary
+
+  // Scripture
+  static const Color scriptureGold = Color(0xFFE6C76E);
 
   // Divider / Border
   static const Color divider = Color(0xFFE0D8CF);
@@ -60,96 +78,84 @@ class AppTextStyles {
     double fontSize = 28,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) =>
-      GoogleFonts.inter(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        letterSpacing: -0.5,
-      );
+  }) => GoogleFonts.inter(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    letterSpacing: -0.5,
+  );
 
   static TextStyle englishBody({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) =>
-      GoogleFonts.inter(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: 1.5,
-      );
+  }) => GoogleFonts.inter(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: 1.5,
+  );
 
   static TextStyle englishCaption({
     double fontSize = 13,
     Color color = AppColors.textLight,
-  }) =>
-      GoogleFonts.inter(
-        fontSize: fontSize,
-        color: color,
-        letterSpacing: 0.2,
-      );
+  }) => GoogleFonts.inter(fontSize: fontSize, color: color, letterSpacing: 0.2);
 
   // ── Arabic ────────────────────────────────────
   static TextStyle arabicDisplay({
     double fontSize = 30,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) =>
-      GoogleFonts.amiri(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: 1.8,
-      );
+  }) => GoogleFonts.amiri(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: 1.8,
+  );
 
   static TextStyle arabicBody({
     double fontSize = 18,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) =>
-      GoogleFonts.amiri(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: 2.0,
-      );
+  }) => GoogleFonts.amiri(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: 2.0,
+  );
 
   static TextStyle arabicVerse({
     double fontSize = 24,
     Color color = AppColors.primary,
-  }) =>
-      GoogleFonts.amiri(
-        fontSize: fontSize,
-        fontWeight: FontWeight.w600,
-        color: color,
-        height: 2.2,
-      );
+  }) => GoogleFonts.amiri(
+    fontSize: fontSize,
+    fontWeight: FontWeight.w600,
+    color: color,
+    height: 2.2,
+  );
 
   // ── Malayalam ─────────────────────────────────
   static TextStyle malayalamDisplay({
     double fontSize = 26,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) =>
-      GoogleFonts.notoSansMalayalam(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: 1.6,
-      );
+  }) => GoogleFonts.notoSansMalayalam(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: 1.6,
+  );
 
   static TextStyle malayalamBody({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) =>
-      GoogleFonts.notoSansMalayalam(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        height: 1.7,
-      );
+  }) => GoogleFonts.notoSansMalayalam(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: 1.7,
+  );
 }
 
 /// ─────────────────────────────────────────────
@@ -174,7 +180,7 @@ class AppTheme {
         onSecondary: AppColors.textOnAccent,
         secondaryContainer: Color(0xFFF5E5C0),
         onSecondaryContainer: AppColors.primary,
-        tertiary: AppColors.lightGreen,
+        tertiary: AppColors.goldAccent,
         onTertiary: AppColors.textOnPrimary,
         tertiaryContainer: Color(0xFFD4F0E2),
         onTertiaryContainer: AppColors.primaryDark,
@@ -192,7 +198,7 @@ class AppTheme {
         scrim: Colors.black54,
         inverseSurface: AppColors.primary,
         onInverseSurface: AppColors.textOnPrimary,
-        inversePrimary: AppColors.lightGreen,
+        inversePrimary: AppColors.goldAccent,
       ),
 
       // ── Scaffold / Background ──────────────────
@@ -217,7 +223,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
         elevation: 1,
-        shadowColor: AppColors.primary.withOpacity(0.12),
+        shadowColor: AppColors.primary.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.divider, width: 0.8),
@@ -231,7 +237,7 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
           elevation: 2,
-          shadowColor: AppColors.primary.withOpacity(0.4),
+          shadowColor: AppColors.primary.withValues(alpha: 0.4),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -275,10 +281,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        hintStyle: GoogleFonts.inter(
-          color: AppColors.textLight,
-          fontSize: 15,
-        ),
+        hintStyle: GoogleFonts.inter(color: AppColors.textLight, fontSize: 15),
         labelStyle: GoogleFonts.inter(
           color: AppColors.textSecondary,
           fontSize: 14,
@@ -295,8 +298,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
 
       // ── Bottom Navigation ─────────────────────
@@ -318,10 +323,7 @@ class AppTheme {
       ),
 
       // ── Icon ──────────────────────────────────
-      iconTheme: const IconThemeData(
-        color: AppColors.primary,
-        size: 24,
-      ),
+      iconTheme: const IconThemeData(color: AppColors.primary, size: 24),
 
       // ── Chip ──────────────────────────────────
       chipTheme: ChipThemeData(
@@ -329,9 +331,7 @@ class AppTheme {
         selectedColor: AppColors.primary,
         labelStyle: GoogleFonts.inter(fontSize: 13),
         side: const BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
 
       // ── FloatingActionButton ──────────────────
@@ -390,6 +390,74 @@ class AppTheme {
           color: AppColors.textLight,
           letterSpacing: 0.2,
         ),
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+
+      colorScheme: const ColorScheme(
+        brightness: Brightness.dark,
+        primary: AppColors.goldAccent, // Gold is primary in dark mode for pop
+        onPrimary: AppColors.primary,
+        secondary: AppColors.gold,
+        onSecondary: AppColors.primary,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
+        surfaceContainerHighest: AppColors.darkCard,
+        outline: AppColors.darkBorder,
+        outlineVariant: AppColors.darkDivider,
+        background: AppColors.darkBackground,
+        onBackground: AppColors.darkTextPrimary,
+        error: Color(0xFFCF6679),
+        onError: Colors.black,
+      ),
+
+      scaffoldBackgroundColor: AppColors.darkBackground,
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.darkBackground,
+        foregroundColor: AppColors.goldAccent,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.goldAccent,
+        ),
+      ),
+
+      cardTheme: CardThemeData(
+        color: AppColors.darkCard,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.darkBorder, width: 0.8),
+        ),
+      ),
+
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.inter(color: AppColors.darkTextPrimary),
+        displayMedium: GoogleFonts.inter(color: AppColors.darkTextPrimary),
+        headlineLarge: GoogleFonts.inter(color: AppColors.darkTextPrimary),
+        bodyLarge: GoogleFonts.inter(color: AppColors.darkTextSecondary),
+        bodyMedium: GoogleFonts.inter(color: AppColors.darkTextSecondary),
+      ),
+
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.darkBackground,
+        selectedItemColor: AppColors.goldAccent,
+        unselectedItemColor: AppColors.darkTextSecondary,
+      ),
+
+      dividerTheme: const DividerThemeData(color: AppColors.darkDivider),
+      iconTheme: const IconThemeData(color: AppColors.goldAccent),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.goldAccent,
+        foregroundColor: AppColors.primary,
       ),
     );
   }

@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:quranfiqh/services/firestore_service.dart';
 import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quranfiqh/core/theme/app_theme.dart';
 import 'package:quranfiqh/models/chat_message.dart';
 import 'package:quranfiqh/widgets/answer_card.dart';
 import 'package:quranfiqh/services/gemini_service.dart';
+import 'package:quranfiqh/services/chat_history_service.dart';
+import 'package:quranfiqh/widgets/history_drawer.dart';
+import 'package:uuid/uuid.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  Ask Screen
@@ -41,11 +47,14 @@ class AskScreen extends StatefulWidget {
 }
 
 class _AskScreenState extends State<AskScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = List.from(_initialMessages);
+
+  String? _currentSessionId;
   bool _isTyping = false;
-  bool _isAILoading = false; // 🔥 API Lock
+  bool _isAILoading = false;
   List<dynamic> _masaalaData = [];
 
   // 🎬 Streaming animation state
@@ -56,6 +65,26 @@ class _AskScreenState extends State<AskScreen> {
   void initState() {
     super.initState();
     _loadMasaalaData();
+  }
+
+  Future<void> _selectSession(String sessionId) async {
+    setState(() {
+      _currentSessionId = sessionId;
+    });
+
+    final messages = await ChatHistoryService().getSessionMessages(sessionId);
+
+    if (mounted) {
+      setState(() {
+        _messages.clear();
+        if (messages.isEmpty) {
+          _messages.addAll(_initialMessages);
+        } else {
+          _messages.addAll(messages);
+        }
+      });
+      _scrollToBottom();
+    }
   }
 
   Future<void> _loadMasaalaData() async {
@@ -138,15 +167,35 @@ class _AskScreenState extends State<AskScreen> {
 
   void _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _isAILoading) return; // 🔥 Prevents duplicate calls
+    if (text.isEmpty || _isAILoading) return;
 
-    final usedLang = AppLanguage.en; // GeminiService auto-detects language
+    final usedLang = AppLanguage.en;
 
     _controller.clear();
+
+    final isNewSession = _currentSessionId == null;
+    if (isNewSession) {
+      _currentSessionId = const Uuid().v4();
+    }
+
     setState(() {
-      _messages.add(ChatMessage(sender: MessageSender.user, text: text));
+      final userMsg = ChatMessage(sender: MessageSender.user, text: text);
+      _messages.add(userMsg);
+
+      final title = isNewSession
+          ? (text.length > 30 ? '${text.substring(0, 27)}...' : text)
+          : null;
+
+      ChatHistoryService().saveToSession(
+        _currentSessionId!,
+        userMsg,
+        isNewSession
+            ? title!
+            : _messages.firstWhere((m) => m.sender == MessageSender.user).text,
+      );
+
       _isTyping = true;
-      _isAILoading = true; // 🔥 Lock ON
+      _isAILoading = true;
     });
     _scrollToBottom();
 
@@ -159,7 +208,6 @@ class _AskScreenState extends State<AskScreen> {
         Map<String, dynamic>? aiData;
 
         if (match != null) {
-          // Build response text directly from local data (Fallback practice)
           final langKey = usedLang == AppLanguage.ml
               ? 'ml'
               : (usedLang == AppLanguage.ar ? 'ar' : 'en');
@@ -173,7 +221,6 @@ class _AskScreenState extends State<AskScreen> {
             responseText += "\n\nQuran Reference: ${quran['reference']}";
           }
         } else {
-          // 1. Check for common greetings to reduce API usage
           final normalizedText = text.toLowerCase();
           final greetings = [
             'hi',
@@ -192,29 +239,19 @@ class _AskScreenState extends State<AskScreen> {
             responseText =
                 "Assalamu Alaikum! How can I help you today with Shafi'i Fiqh or Tajweed questions?";
           } else {
-            // 2. Use GeminiService directly
-            aiData = await GeminiService.getAnswer(text);
-            responseText = aiData['ruling'] ?? "Something went wrong.";
+            try {
+              aiData = await GeminiService.getAnswer(text);
+              if (!mounted) return;
+              responseText = aiData['ruling'] ?? "...";
+            } catch (e) {
+              responseText = "Something went wrong.";
+            }
           }
         }
 
         ChatMessage responseMessage;
 
-        if (match != null) {
-          responseMessage = ChatMessage.fromJson(match);
-          // Force the text to match what we constructed
-          responseMessage = ChatMessage(
-            sender: MessageSender.bot,
-            text: responseText,
-            translations: responseMessage.translations,
-            currentLang: usedLang,
-            quranArabic: responseMessage.quranArabic,
-            quranReference: responseMessage.quranReference,
-            hadithArabic: responseMessage.hadithArabic,
-            hadithReference: responseMessage.hadithReference,
-          );
-        } else if (aiData != null) {
-          // Map the AI JSON to structured ChatMessage for rich UI display
+        if (aiData != null) {
           final content = LocalizedContent(
             text: responseText,
             ruling: aiData['ruling'],
@@ -230,19 +267,18 @@ class _AskScreenState extends State<AskScreen> {
             currentLang: usedLang,
             quranArabic:
                 (aiData['quran_arabic'] != null && aiData['quran_arabic'] != "")
-                ? aiData['quran_arabic']
-                : null,
-            quranReference:
-                (aiData['quran_reference'] != null &&
+                    ? aiData['quran_arabic']
+                    : null,
+            quranReference: (aiData['quran_reference'] != null &&
                     aiData['quran_reference'] != "")
                 ? aiData['quran_reference']
                 : null,
-            hadithArabic:
-                (aiData['hadith_arabic'] != null && aiData['hadith_arabic'] != "")
+            hadithArabic: (aiData['hadith_arabic'] != null &&
+                    aiData['hadith_arabic'] != "")
                 ? aiData['hadith_arabic']
                 : null,
-            hadithReference:
-                (aiData['hadith_reference'] != null && aiData['hadith_reference'] != "")
+            hadithReference: (aiData['hadith_reference'] != null &&
+                    aiData['hadith_reference'] != "")
                 ? aiData['hadith_reference']
                 : null,
           );
@@ -250,14 +286,16 @@ class _AskScreenState extends State<AskScreen> {
           responseMessage = ChatMessage(
             sender: MessageSender.bot,
             text: responseText,
+            translations: {
+              usedLang: LocalizedContent(text: responseText),
+            },
             currentLang: usedLang,
           );
         }
 
         setState(() {
           _isTyping = false;
-          _isAILoading = false; // 🔥 Lock OFF
-          // 🎬 Begin typewriter animation
+          _isAILoading = false;
           _pendingStreamText = responseText;
           _pendingBotMessage = responseMessage;
         });
@@ -265,9 +303,16 @@ class _AskScreenState extends State<AskScreen> {
       } catch (e) {
         setState(() {
           _isTyping = false;
-          _isAILoading = false; // 🔥 Lock OFF
+          _isAILoading = false;
         });
         debugPrint("Error sending message: $e");
+        try {
+          FirebaseCrashlytics.instance.recordError(
+            e,
+            StackTrace.current,
+            reason: 'Gemini API Failure',
+          );
+        } catch (_) {}
       }
     });
   }
@@ -282,18 +327,6 @@ class _AskScreenState extends State<AskScreen> {
         );
       }
     });
-  }
-
-  void _onStreamingComplete() {
-    if (!mounted) return;
-    setState(() {
-      if (_pendingBotMessage != null) {
-        _messages.add(_pendingBotMessage!);
-      }
-      _pendingStreamText = null;
-      _pendingBotMessage = null;
-    });
-    _scrollToBottom();
   }
 
   void _resetChat() {
@@ -316,141 +349,214 @@ class _AskScreenState extends State<AskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          // ── Header Actions ──────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton.icon(
-                  onPressed: _resetChat,
-                  icon: SvgPicture.asset(
-                    'assets/icons/bubble-chat-add-stroke-rounded.svg',
-                    width: 16,
-                    height: 16,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.primary,
-                      BlendMode.srcIn,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      drawer: HistoryDrawer(
+        currentSessionId: _currentSessionId,
+        onSessionSelected: _selectSession,
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // ── Header Actions ──────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    icon: SvgPicture.asset(
+                      'assets/icons/chat-01-stroke-rounded.svg',
+                      width: 22,
+                      height: 22,
+                      colorFilter: ColorFilter.mode(
+                        colorScheme.primary,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: colorScheme.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      padding: const EdgeInsets.all(10),
                     ),
                   ),
-                  label: Text(
-                    'New Chat',
-                    style: AppTextStyles.englishCaption(
-                      fontSize: 12,
-                      color: AppColors.primary,
-                    ).copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                  TextButton.icon(
+                    onPressed: _resetChat,
+                    icon: SvgPicture.asset(
+                      'assets/icons/bubble-chat-add-stroke-rounded.svg',
+                      width: 16,
+                      height: 16,
+                      colorFilter: ColorFilter.mode(
+                        colorScheme.primary,
+                        BlendMode.srcIn,
+                      ),
                     ),
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.05),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                    label: Text(
+                      'New Chat',
+                      style: AppTextStyles.englishCaption(
+                        fontSize: 12,
+                        color: colorScheme.primary,
+                      ).copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      backgroundColor: colorScheme.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // ── Chat area ───────────────────────────────────────
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount:
-                  _messages.length +
-                  (_isTyping ? 1 : 0) +
-                  (_pendingStreamText != null ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // Welcome Message + Centered Prompt if no messages yet
-                  final onlyInitial =
-                      _messages.length == 1 &&
-                      _messages[0].text == _initialMessages[0].text;
-
-                  return Column(
-                    children: [
-                      _ChatBubble(message: _messages[0]),
-                      if (onlyInitial)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 80),
-                          child: Center(
+            // ── Chat area ───────────────────────────────────────
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
+                itemCount:
+                    _messages.length +
+                    (_pendingStreamText != null || _isTyping ? 1 : 0),
+                itemBuilder: (context, index) {
+                  // Special logic for the very first message/greeting
+                  if (index == 0 &&
+                      _messages.isNotEmpty &&
+                      _messages[0].sender == MessageSender.bot &&
+                      _currentSessionId == null) {
+                    return Column(
+                      children: [
+                        // Welcome Logo/Icon
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 40, bottom: 20),
                             child: Column(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: SvgPicture.asset(
-                                    'assets/icons/bubble-chat-add-stroke-rounded.svg',
-                                    width: 40,
-                                    height: 40,
-                                    colorFilter: const ColorFilter.mode(
-                                      AppColors.primary,
-                                      BlendMode.srcIn,
-                                    ),
+                                SvgPicture.asset(
+                                  'assets/icons/chat-01-stroke-rounded.svg',
+                                  width: 60,
+                                  height: 60,
+                                  colorFilter: ColorFilter.mode(
+                                    colorScheme.primary.withValues(alpha: 0.2),
+                                    BlendMode.srcIn,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
                                   'Ask a Question',
-                                  style: AppTextStyles.englishDisplay(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: colorScheme.onSurface,
+                                        letterSpacing: -0.5,
+                                      ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Type any question about Shafi\'i Fiqh\nor Tajweed below.',
+                                  "Explore Shafi'i Fiqh & Tajweed rulings\nin a simple conversation.",
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.englishBody(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                    fontSize: 15,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ).copyWith(height: 1.4),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                    ],
-                  );
-                }
+                      ],
+                    );
+                  }
 
-                // Regular messages
-                if (index < _messages.length) {
-                  return _ChatBubble(message: _messages[index]);
-                }
+                  if (index < _messages.length) {
+                    final prevMessage = index > 0 ? _messages[index - 1] : null;
+                    return _ChatBubble(
+                      message: _messages[index],
+                      onBookmark:
+                          _messages[index].sender == MessageSender.bot &&
+                              prevMessage != null &&
+                              prevMessage.sender == MessageSender.user
+                          ? () async {
+                              final firebaseUser =
+                                  FirebaseAuth.instance.currentUser;
+                              if (firebaseUser == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please login to save answers',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              final r = _messages[index]
+                                  .translations![_messages[index].currentLang]!;
+                              final messenger = ScaffoldMessenger.of(context);
+                              await FirestoreService.saveBookmark(
+                                firebaseUser.uid,
+                                prevMessage.text,
+                                r.ruling ?? r.text,
+                              );
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Saved to bookmarks'),
+                                ),
+                              );
+                            }
+                          : null,
+                    );
+                  }
 
-                // 🎬 Typewriter streaming bubble
-                if (_pendingStreamText != null && index == _messages.length) {
-                  return _StreamingBubble(
-                    key: const ValueKey('streaming'),
-                    fullText: _pendingStreamText!,
-                    onComplete: _onStreamingComplete,
-                  );
-                }
+                  // 🎬 Typewriter streaming bubble
+                  if (_pendingStreamText != null && index == _messages.length) {
+                    return _StreamingBubble(
+                      key: const ValueKey('streaming'),
+                      fullText: _pendingStreamText!,
+                      onComplete: () {
+                        if (!mounted) return;
+                        setState(() {
+                          if (_pendingBotMessage != null) {
+                            _messages.add(_pendingBotMessage!);
+                            if (_currentSessionId != null) {
+                              ChatHistoryService().saveToSession(
+                                _currentSessionId!,
+                                _pendingBotMessage!,
+                                "",
+                              );
+                            }
+                          }
+                          _pendingStreamText = null;
+                          _pendingBotMessage = null;
+                        });
+                        _scrollToBottom();
+                      },
+                    );
+                  }
 
-                // Bouncing dots (API loading)
-                return _TypingIndicator();
-              },
+                  // Bouncing dots (API loading)
+                  return _TypingIndicator();
+                },
+              ),
             ),
-          ),
 
-          // ── Input bar ───────────────────────────────────────
-          _InputBar(controller: _controller, onSend: _sendMessage),
-        ],
+            // ── Input bar ───────────────────────────────────────
+            _InputBar(controller: _controller, onSend: _sendMessage),
+          ],
+        ),
       ),
     );
   }
@@ -462,11 +568,13 @@ class _AskScreenState extends State<AskScreen> {
 
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
+  final VoidCallback? onBookmark;
 
-  const _ChatBubble({required this.message});
+  const _ChatBubble({required this.message, this.onBookmark});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isBot = message.sender == MessageSender.bot;
     final hasAnswer =
         message.translations != null &&
@@ -475,12 +583,45 @@ class _ChatBubble extends StatelessWidget {
     if (isBot && hasAnswer) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: AnswerCard(
-          data: message.translations![message.currentLang]!,
-          quranArabic: message.quranArabic,
-          quranReference: message.quranReference,
-          hadithArabic: message.hadithArabic,
-          hadithReference: message.hadithReference,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            AnswerCard(
+              data: message.translations![message.currentLang]!,
+              quranArabic: message.quranArabic,
+              quranReference: message.quranReference,
+              hadithArabic: message.hadithArabic,
+              hadithReference: message.hadithReference,
+            ),
+            if (onBookmark != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: TextButton.icon(
+                  onPressed: onBookmark,
+                  icon: Icon(
+                    Icons.bookmark_border,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  label: Text(
+                    'Save Answer',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       );
     }
@@ -494,7 +635,9 @@ class _ChatBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isBot ? AppColors.botMsgBg : AppColors.userMsgBg,
+          color: isBot
+              ? theme.colorScheme.surfaceContainerHighest
+              : theme.colorScheme.primary,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -510,12 +653,31 @@ class _ChatBubble extends StatelessWidget {
               ),
           ],
         ),
-        child: Text(
-          message.text,
-          style: AppTextStyles.englishBody(
-            color: isBot ? AppColors.botMsgText : AppColors.userMsgText,
-            fontSize: 14,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              message.text,
+              style: AppTextStyles.englishBody(
+                color: isBot
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onPrimary,
+                fontSize: 14,
+              ),
+            ),
+            if (onBookmark != null && isBot)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: InkWell(
+                  onTap: onBookmark,
+                  child: Icon(
+                    Icons.bookmark_border,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -586,7 +748,7 @@ class _StreamingBubbleState extends State<_StreamingBubble> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: AppColors.botMsgBg,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -609,7 +771,7 @@ class _StreamingBubbleState extends State<_StreamingBubble> {
               child: Text(
                 _displayed,
                 style: AppTextStyles.englishBody(
-                  color: AppColors.botMsgText,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 14,
                 ),
               ),
@@ -652,14 +814,16 @@ class _BlinkingCursorState extends State<_BlinkingCursor>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) => Opacity(
+      builder: (_, _) => Opacity(
         opacity: _ctrl.value,
         child: Container(
           width: 2,
           height: 15,
           margin: const EdgeInsets.only(left: 3, bottom: 1),
           decoration: BoxDecoration(
-            color: AppColors.botMsgText,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(1),
           ),
         ),
@@ -698,20 +862,24 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: theme.colorScheme.surface,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
             bottomLeft: Radius.circular(4),
             bottomRight: Radius.circular(16),
           ),
-          border: Border.all(color: AppColors.divider, width: 0.8),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+            width: 0.8,
+          ),
         ),
         child: AnimatedBuilder(
           animation: _controller,
@@ -753,46 +921,45 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      decoration: const BoxDecoration(color: AppColors.background),
+      decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
               onSubmitted: (_) => onSend(),
-              style: const TextStyle(fontSize: 14),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontSize: 14,
+              ),
               decoration: InputDecoration(
                 hintText: 'Type your question...',
-                hintStyle: const TextStyle(
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
-                  color: AppColors.textLight,
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 filled: true,
-                fillColor: AppColors.surface,
+                fillColor: theme.cardTheme.color,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(
-                    color: AppColors.divider,
-                    width: 0.8,
-                  ),
-                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(
-                    color: AppColors.divider,
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant,
                     width: 0.8,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
                     width: 1.2,
                   ),
                 ),
@@ -801,8 +968,8 @@ class _InputBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Container(
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
               shape: BoxShape.circle,
             ),
             child: IconButton(

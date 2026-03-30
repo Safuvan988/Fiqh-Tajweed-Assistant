@@ -35,8 +35,8 @@ const List<TajweedRule> _rules = [
     description:
         'When a Noon Sakinah or Tanween is followed by any of the 15 Ikhfa letters. The sound is pronounced between Izhar and Idgham with Ghunnah.',
     exampleRef: 'Surah Al-Falaq (113:2)',
-    exampleArabic: 'مِن شَرِّ',
-    audioUrl: 'https://www.everyayah.com/data/Al_Husary_128kbps/113002.mp3',
+    exampleArabic: 'مِن شَرِّ مَا خَلَقَ',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.husary/6227.mp3',
   ),
   TajweedRule(
     name: 'Idgham — Merging',
@@ -44,17 +44,17 @@ const List<TajweedRule> _rules = [
     description:
         'When Noon Sakinah or Tanween is followed by (ي، ر، م، ل، و، ن). It merges the first letter into the second.',
     exampleRef: 'Surah Al-Masad (111:1)',
-    exampleArabic: 'أَبِي لَهَبٍ وَتَبَّ',
-    audioUrl: 'https://www.everyayah.com/data/Al_Husary_128kbps/111001.mp3',
+    exampleArabic: 'تَبَّتْ يَدَا أَبِي لَهَبٍ وَتَبَّ',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.husary/6214.mp3',
   ),
   TajweedRule(
     name: 'Iqlab — Changing',
     arabicName: 'إقلاب',
     description:
         'When Noon Sakinah or Tanween is followed by a Ba (ب). The Noon changes into a hidden Meem (م) with Ghunnah.',
-    exampleRef: 'Surah Al-Baqarah (2:246)',
-    exampleArabic: 'مِن بَعْدِ',
-    audioUrl: 'https://www.everyayah.com/data/Al_Husary_128kbps/002246.mp3',
+    exampleRef: 'Surah Al-Humazah (104:4)',
+    exampleArabic: 'كَلَّا ۖ لَيُنْبَذَنَّ فِي الْحُطَمَةِ',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.husary/6169.mp3',
   ),
   TajweedRule(
     name: 'Qalqalah — Echo',
@@ -63,7 +63,7 @@ const List<TajweedRule> _rules = [
         'A bouncing or echoing sound when pronouncing the letters (ق، ط، ب، ج، د) when they carry a Sukoon.',
     exampleRef: 'Surah Al-Ikhlas (112:1)',
     exampleArabic: 'قُلْ هُوَ اللَّهُ أَحَدٌ',
-    audioUrl: 'https://www.everyayah.com/data/Al_Husary_128kbps/112001.mp3',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.husary/6221.mp3',
   ),
 ];
 
@@ -76,8 +76,11 @@ class TajweedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Tajweed Lab'),
         actions: [
@@ -89,7 +92,7 @@ class TajweedScreen extends StatelessWidget {
                 'assets/icons/information-diamond-stroke-rounded.svg',
                 semanticsLabel: 'Information',
                 colorFilter: ColorFilter.mode(
-                  AppColors.textPrimary.withValues(alpha: 0.8),
+                  colorScheme.onSurface.withValues(alpha: 0.8),
                   BlendMode.srcIn,
                 ),
               ),
@@ -171,14 +174,17 @@ class _TajweedCardState extends State<_TajweedCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider, width: 0.8),
+        border: Border.all(color: colorScheme.outlineVariant, width: 0.8),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gold.withValues(alpha: 0.08),
+            color: colorScheme.primary.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -196,11 +202,7 @@ class _TajweedCardState extends State<_TajweedCard> {
                 Expanded(
                   child: Text(
                     widget.rule.name,
-                    style: AppTextStyles.englishDisplay(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: theme.textTheme.titleLarge,
                   ),
                 ),
                 Container(
@@ -209,14 +211,14 @@ class _TajweedCardState extends State<_TajweedCard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.15),
+                    color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     widget.rule.arabicName,
                     style: AppTextStyles.arabicVerse(
                       fontSize: 16,
-                      color: AppColors.gold,
+                      color: colorScheme.primary,
                     ),
                   ),
                 ),
@@ -229,9 +231,8 @@ class _TajweedCardState extends State<_TajweedCard> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               widget.rule.description,
-              style: AppTextStyles.englishBody(
-                fontSize: 13,
-                color: AppColors.textSecondary,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -241,7 +242,15 @@ class _TajweedCardState extends State<_TajweedCard> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: AppColors.surface,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              border: Border.symmetric(
+                horizontal: BorderSide(
+                  color: colorScheme.outlineVariant,
+                  width: 0.5,
+                ),
+              ),
+            ),
             child: Column(
               children: [
                 Text(
@@ -250,15 +259,14 @@ class _TajweedCardState extends State<_TajweedCard> {
                   textDirection: TextDirection.rtl,
                   style: AppTextStyles.arabicVerse(
                     fontSize: 28,
-                    color: _isPlaying ? AppColors.gold : AppColors.primary,
+                    color: _isPlaying ? AppColors.scriptureGold : colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Example from: ${widget.rule.exampleRef}',
-                  style: AppTextStyles.englishCaption(
-                    fontSize: 12,
-                    color: AppColors.textLight,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],

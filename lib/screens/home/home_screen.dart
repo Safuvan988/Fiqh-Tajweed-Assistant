@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quranfiqh/core/theme/app_theme.dart';
 import 'package:quranfiqh/services/daily_content_service.dart';
+import 'package:quranfiqh/screens/home/daily_detail_screen.dart';
+import 'package:quranfiqh/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// ─────────────────────────────────────────────────────────────
+//  Home Screen
+// ─────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,29 +45,53 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _navigateToDetail({
+    required String category,
+    required String title,
+    required String subtitle,
+    required String details,
+    required Color iconColor,
+    required String assetPath,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DailyDetailScreen(
+          category: category,
+          title: title,
+          subtitle: subtitle,
+          details: details,
+          iconColor: iconColor,
+          assetPath: assetPath,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadDailyContent,
-          color: AppColors.primary,
+          color: colorScheme.primary,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             children: [
               const SizedBox(height: 12),
 
               // ── Greeting Header ──────────────────────────────
-              _GreetingHeader(),
+              const _GreetingHeader(),
 
               const SizedBox(height: 20),
 
               // ── Verse of the Day banner ──────────────────────
               if (_isLoading)
-                _ShimmerBanner()
+                const _ShimmerBanner()
               else
                 _VerseBanner(
                   arabic: _dailyContent?['verse']?['arabic'] ?? '',
@@ -76,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: AppTextStyles.englishDisplay(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
 
@@ -84,26 +115,54 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ── Daily Cards ──────────────────────────────────
               if (_isLoading) ...[
-                _ShimmerCard(),
+                const _ShimmerCard(),
                 const SizedBox(height: 12),
-                _ShimmerCard(),
+                const _ShimmerCard(),
               ] else ...[
+                // Masa'la Card
                 _DailyMasalaCard(
-                  screenWidth: size.width,
                   title: _dailyContent?['masala']?['title'] ?? 'Daily Masa\'la',
-                  subtitle:
-                      _dailyContent?['masala']?['subtitle'] ?? 'Loading...',
+                  subtitle: _dailyContent?['masala']?['subtitle'] ?? 'Loading...',
+                  onTap: () => _navigateToDetail(
+                    category: 'DAILY MASA\'LA',
+                    title: _dailyContent?['masala']?['title'] ?? 'Daily Masa\'la',
+                    subtitle: _dailyContent?['masala']?['subtitle'] ?? '',
+                    details: _dailyContent?['masala']?['details'] ?? 'Detailed explanation loading...',
+                    iconColor: const Color(0xFF5378F7),
+                    assetPath: 'assets/icons/book-open-02-stroke-rounded.svg',
+                  ),
                 ),
                 const SizedBox(height: 12),
+                
+                // Tajweed Card
                 _TajweedTipCard(
-                  screenWidth: size.width,
                   title: _dailyContent?['tajweed']?['title'] ?? 'Tajweed Tip',
-                  subtitle:
-                      _dailyContent?['tajweed']?['subtitle'] ?? 'Loading...',
+                  subtitle: _dailyContent?['tajweed']?['subtitle'] ?? 'Loading...',
+                  onTap: () => _navigateToDetail(
+                    category: 'TAJWEED TIP',
+                    title: _dailyContent?['tajweed']?['title'] ?? 'Tajweed Tip',
+                    subtitle: _dailyContent?['tajweed']?['subtitle'] ?? '',
+                    details: _dailyContent?['tajweed']?['details'] ?? 'Detailed explanation loading...',
+                    iconColor: const Color(0xFFF77853),
+                    assetPath: 'assets/icons/microphone-01-stroke-rounded.svg',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Dhikr Card
+                _DailyDhikrCard(
+                  title: _dailyContent?['dhikr']?['title'] ?? 'SubhanAllah wa Bihamdihi',
+                  subtitle: _dailyContent?['dhikr']?['subtitle'] ?? 'Praise Allah 100 times for immense rewards.',
+                  onTap: () => _navigateToDetail(
+                    category: 'DAILY DHIKR',
+                    title: _dailyContent?['dhikr']?['title'] ?? 'Daily Dhikr',
+                    subtitle: _dailyContent?['dhikr']?['subtitle'] ?? '',
+                    details: _dailyContent?['dhikr']?['details'] ?? 'Detailed explanation loading...',
+                    iconColor: const Color(0xFF53F778),
+                    assetPath: 'assets/icons/stars-02-stroke-rounded.svg',
+                  ),
                 ),
               ],
-              const SizedBox(height: 12),
-              _SavedItemsCard(screenWidth: size.width),
 
               const SizedBox(height: 24),
             ],
@@ -115,76 +174,56 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Greeting Header
+//  Internal Widgets
 // ─────────────────────────────────────────────────────────────
+
 class _GreetingHeader extends StatelessWidget {
+  const _GreetingHeader();
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final authUser = FirebaseAuth.instance.currentUser;
+    final user = AuthService().currentUser.value;
+    final email = authUser?.email ?? user?.email ?? '';
+    final isGuest = user?.isGuest ?? authUser?.isAnonymous ?? true;
+
+    final rawPrefix = email.isNotEmpty ? email.split('@').first : '';
+    final emailPrefix = rawPrefix.replaceAll(RegExp(r'\d'), '');
+    final fallbackName = user?.name ?? 'User';
+
+    final displayName = isGuest 
+        ? 'Brother/Sister' 
+        : (emailPrefix.isNotEmpty ? emailPrefix : fallbackName);
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'السلام عليكم 👋',
-                textAlign: TextAlign.left,
-                style: AppTextStyles.arabicDisplay(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ).copyWith(height: 1.2),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'What would you like to explore today?',
-                style: AppTextStyles.englishBody(
-                  fontSize: 13,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 14),
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: SvgPicture.asset(
-                'assets/icons/user-03-stroke-rounded.svg',
-                semanticsLabel: 'Profile',
-                colorFilter: const ColorFilter.mode(
-                  AppColors.textOnPrimary,
-                  BlendMode.srcIn,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Assalamu Alaikum,',
+              style: AppTextStyles.englishCaption(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 14,
               ),
             ),
-          ),
+            Text(
+              displayName,
+              style: AppTextStyles.englishDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Verse Banner
-// ─────────────────────────────────────────────────────────────
 class _VerseBanner extends StatelessWidget {
   final String arabic;
   final String translation;
@@ -198,72 +237,77 @@ class _VerseBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: colorScheme.primaryContainer.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppColors.scriptureGold.withValues(alpha: 0.2),
+          width: 1,
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Arabic verse
-          Text(
-            arabic,
-            textAlign: TextAlign.right,
-            textDirection: TextDirection.rtl,
-            style: AppTextStyles.arabicVerse(
-              fontSize: 24,
-              color: AppColors.scriptureGold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            height: 1,
-            color: AppColors.textOnPrimary.withValues(alpha: 0.2),
-          ),
-          const SizedBox(height: 10),
-          // Translation
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '"$translation"',
-              style: AppTextStyles.englishBody(
-                fontSize: 13,
-                color: AppColors.textOnPrimary.withValues(alpha: 0.85),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                reference,
-                style: AppTextStyles.englishCaption(
-                  color: AppColors.gold,
-                  fontSize: 11,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: SvgPicture.asset(
+                  'assets/icons/book-open-02-stroke-rounded.svg',
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.scriptureGold,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
+              Text(
+                'VERSE OF THE DAY',
+                style: AppTextStyles.englishCaption(
+                  color: colorScheme.brightness == Brightness.dark 
+                      ? AppColors.scriptureGold 
+                      : AppColors.gold,
+                  fontSize: 12,
+                ).copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            arabic,
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+            style: AppTextStyles.arabicVerse(
+              fontSize: 28,
+              color: colorScheme.onSurface,
             ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            translation,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.8),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            reference,
+            style: AppTextStyles.englishCaption(
+              color: AppColors.scriptureGold,
+              fontSize: 11,
+            ).copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -271,285 +315,243 @@ class _VerseBanner extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Shared Card Wrapper
-// ─────────────────────────────────────────────────────────────
-class _InfoCard extends StatelessWidget {
-  final String assetPath;
-  final Color iconBg;
-  final Color iconColor;
-  final String label;
+class _DailyMasalaCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String? badge;
-  final double screenWidth;
+  final VoidCallback onTap;
 
-  const _InfoCard({
-    required this.assetPath,
-    required this.iconBg,
-    required this.iconColor,
-    required this.label,
+  const _DailyMasalaCard({
     required this.title,
     required this.subtitle,
-    required this.screenWidth,
-    this.badge,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    return _InfoCard(
+      label: 'DAILY MASA\'LA',
+      title: title,
+      subtitle: subtitle,
+      assetPath: 'assets/icons/book-open-02-stroke-rounded.svg',
+      iconBg: const Color(0xFFF1F4FF),
+      iconColor: const Color(0xFF5378F7),
+      badge: 'Shafi\'i',
+      onTap: onTap,
+    );
+  }
+}
+
+class _TajweedTipCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _TajweedTipCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      label: 'TAJWEED TIP',
+      title: title,
+      subtitle: subtitle,
+      assetPath: 'assets/icons/headphones-stroke-rounded.svg',
+      iconBg: const Color(0xFFFFF3F1),
+      iconColor: const Color(0xFFF77853),
+      onTap: onTap,
+    );
+  }
+}
+
+class _DailyDhikrCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _DailyDhikrCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      label: 'DAILY DHIKR',
+      title: title,
+      subtitle: subtitle,
+      assetPath: 'assets/icons/bookmark-02-stroke-rounded.svg',
+      iconBg: const Color(0xFFF1FFF4),
+      iconColor: const Color(0xFF53F778),
+      onTap: onTap,
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final String label;
+  final String title;
+  final String subtitle;
+  final String assetPath;
+  final Color iconBg;
+  final Color iconColor;
+  final String? badge;
+  final VoidCallback onTap;
+
+  const _InfoCard({
+    required this.label,
+    required this.title,
+    required this.subtitle,
+    required this.assetPath,
+    required this.iconBg,
+    required this.iconColor,
+    this.badge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.divider, width: 0.8),
+        border: Border.all(color: colorScheme.outlineVariant, width: 0.8),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: colorScheme.primary.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon container
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: SvgPicture.asset(
-                  assetPath,
-                  semanticsLabel: label,
-                  colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // Text content
-          Expanded(
-            child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      label,
-                      style: AppTextStyles.englishCaption(
-                        color: AppColors.textLight,
-                        fontSize: 11,
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: colorScheme.brightness == Brightness.dark 
+                        ? iconColor.withValues(alpha: 0.1) 
+                        : iconBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: SvgPicture.asset(
+                        assetPath,
+                        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                       ),
                     ),
-                    if (badge != null) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          badge!,
-                          style: AppTextStyles.englishCaption(
-                            color: AppColors.gold,
-                            fontSize: 10,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            label,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurface.withValues(alpha: 0.6),
+                              letterSpacing: 0.5,
+                            ),
                           ),
+                          if (badge != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                badge!,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onPrimaryContainer,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: AppTextStyles.englishDisplay(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.englishBody(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colorScheme.onSurface.withValues(alpha: 0.3),
+                  size: 20,
                 ),
               ],
             ),
           ),
-
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textLight,
-            size: 20,
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Daily Masa'la Card
-// ─────────────────────────────────────────────────────────────
-class _DailyMasalaCard extends StatelessWidget {
-  final double screenWidth;
-  final String title;
-  final String subtitle;
-
-  const _DailyMasalaCard({
-    required this.screenWidth,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      assetPath: 'assets/icons/book-open-02-stroke-rounded.svg',
-      iconBg: AppColors.primary.withValues(alpha: 0.1),
-      iconColor: AppColors.primary,
-      label: 'DAILY MASA\'LA',
-      badge: 'New',
-      title: title,
-      subtitle: subtitle,
-      screenWidth: screenWidth,
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  Tajweed Tip Card
-// ─────────────────────────────────────────────────────────────
-class _TajweedTipCard extends StatelessWidget {
-  final double screenWidth;
-  final String title;
-  final String subtitle;
-
-  const _TajweedTipCard({
-    required this.screenWidth,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      assetPath: 'assets/icons/headphones-stroke-rounded.svg',
-      iconBg: AppColors.gold.withValues(alpha: 0.12),
-      iconColor: AppColors.gold,
-      label: 'TAJWEED TIP',
-      title: title,
-      subtitle: subtitle,
-      screenWidth: screenWidth,
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  Saved Items Card
-// ─────────────────────────────────────────────────────────────
-class _SavedItemsCard extends StatelessWidget {
-  final double screenWidth;
-  const _SavedItemsCard({required this.screenWidth});
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      assetPath: 'assets/icons/bookmark-02-stroke-rounded.svg',
-      iconBg: AppColors.goldAccent.withValues(alpha: 0.12),
-      iconColor: AppColors.goldAccent,
-      label: 'SAVED ITEMS',
-      title: '4 items bookmarked',
-      subtitle: 'Rulings on fasting, Surah Yasin, Ghunnah rules, Wudu fatwas',
-      screenWidth: screenWidth,
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  Shimmer / Loading UI
-// ─────────────────────────────────────────────────────────────
 class _ShimmerBanner extends StatelessWidget {
+  const _ShimmerBanner();
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      height: 160,
+      height: 180,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(24),
       ),
     );
   }
 }
 
 class _ShimmerCard extends StatelessWidget {
+  const _ShimmerCard();
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      height: 100,
+      height: 120,
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.divider, width: 0.8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 10,
-                    color: Colors.grey.withValues(alpha: 0.1),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    height: 14,
-                    color: Colors.grey.withValues(alpha: 0.1),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -9,7 +9,7 @@ class MasalaDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('${category.emoji}  ${category.title}'),
         leading: const BackButton(),
@@ -45,11 +45,12 @@ class _MasalaCardState extends State<_MasalaCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.divider, width: 0.8),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.8),
         boxShadow: [
           BoxShadow(
             color: widget.accentColor.withAlpha(18),
@@ -81,7 +82,7 @@ class _MasalaCardState extends State<_MasalaCard> {
                     style: AppTextStyles.englishDisplay(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -158,7 +159,7 @@ class _MasalaCardState extends State<_MasalaCard> {
                 widget.item.details,
                 style: AppTextStyles.englishBody(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -229,7 +230,7 @@ class _SectionTileState extends State<_SectionTile> {
                   duration: const Duration(milliseconds: 200),
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.textLight,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     size: 18,
                   ),
                 ),
@@ -243,7 +244,7 @@ class _SectionTileState extends State<_SectionTile> {
                   widget.content,
                   style: AppTextStyles.englishBody(
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ),

@@ -36,20 +36,29 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Google Fonts — Inter (English), Amiri (Arabic), Noto Sans Malayalam
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.2
 
   # SVG Support
   flutter_svg: ^2.0.10+1
 
   # Audio Support
-  audioplayers: ^5.2.1
+  audioplayers: ^6.6.0
 
   # Environment Variables
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.0
 
   # Networking
   http: ^1.2.0
-  shared_preferences: ^2.5.5
+  shared_preferences: ^2.2.2
+  flutter_riverpod: ^3.3.1
+  firebase_core: ^4.6.0
+  firebase_auth: ^6.3.0
+  cloud_firestore: ^6.2.0
+  google_sign_in: ^7.2.0
+  firebase_storage: ^13.2.0
+  firebase_crashlytics: ^5.1.0
+  intl: ^0.20.2
+  uuid: ^4.5.3
 
 dev_dependencies:
   flutter_test:
@@ -59,7 +68,7 @@ dev_dependencies:
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # triggered when the user saves the image.
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the

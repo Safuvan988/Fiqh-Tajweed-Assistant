@@ -29,6 +29,17 @@ class LocalizedContent {
       otherViews: json['otherViews'],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'text': text,
+      'ruling': ruling,
+      'quranTranslation': quranTranslation,
+      'hadithTranslation': hadithTranslation,
+      'fiqhExplanation': fiqhExplanation,
+      'otherViews': otherViews,
+    };
+  }
 }
 
 class ChatMessage {
@@ -98,9 +109,50 @@ class ChatMessage {
 
     return ChatMessage(
       sender: MessageSender.bot,
-      text: json['question']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
       translations: translations,
       currentLang: AppLanguage.en,
+      quranArabic: json['quranArabic'],
+      quranReference: json['quranReference'],
+      hadithArabic: json['hadithArabic'],
+      hadithReference: json['hadithReference'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'sender': sender.name,
+      'text': text,
+      'translations': translations?.map((key, value) => MapEntry(key.name, value.toMap())),
+      'currentLang': currentLang.name,
+      'quranArabic': quranArabic,
+      'quranReference': quranReference,
+      'hadithArabic': hadithArabic,
+      'hadithReference': hadithReference,
+    };
+  }
+
+  factory ChatMessage.fromPersistedJson(Map<String, dynamic> json) {
+    final translationsJson = json['translations'] as Map<String, dynamic>?;
+    final Map<AppLanguage, LocalizedContent>? translations =
+        translationsJson?.map(
+      (key, value) {
+        final lang = AppLanguage.values.firstWhere(
+          (e) => e.name == key,
+          orElse: () => AppLanguage.en,
+        );
+        return MapEntry(lang, LocalizedContent.fromJson(value));
+      },
+    );
+
+    return ChatMessage(
+      sender: MessageSender.values.firstWhere((e) => e.name == json['sender']),
+      text: json['text'] ?? '',
+      translations: translations,
+      currentLang: AppLanguage.values.firstWhere(
+        (e) => e.name == json['currentLang'],
+        orElse: () => AppLanguage.en,
+      ),
       quranArabic: json['quranArabic'],
       quranReference: json['quranReference'],
       hadithArabic: json['hadithArabic'],

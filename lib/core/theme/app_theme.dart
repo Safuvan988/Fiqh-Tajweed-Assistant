@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+
 /// ─────────────────────────────────────────────
 ///  QuranFiqh App Colour Palette
 /// ─────────────────────────────────────────────
@@ -73,89 +74,111 @@ class AppFonts {
 class AppTextStyles {
   AppTextStyles._();
 
+  static double scaleFactor = 1.0;
+
   // ── English ──────────────────────────────────
   static TextStyle englishDisplay({
     double fontSize = 28,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) => GoogleFonts.inter(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    letterSpacing: -0.5,
-  );
+  }) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: -0.5,
+    );
+  }
 
   static TextStyle englishBody({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) => GoogleFonts.inter(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: 1.5,
-  );
+  }) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: 1.5,
+    );
+  }
 
   static TextStyle englishCaption({
     double fontSize = 13,
     Color color = AppColors.textLight,
-  }) => GoogleFonts.inter(fontSize: fontSize, color: color, letterSpacing: 0.2);
+  }) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      color: color,
+      letterSpacing: 0.2,
+    );
+  }
 
   // ── Arabic ────────────────────────────────────
   static TextStyle arabicDisplay({
     double fontSize = 30,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) => GoogleFonts.amiri(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: 1.8,
-  );
+  }) {
+    return GoogleFonts.amiri(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: 1.8,
+    );
+  }
 
   static TextStyle arabicBody({
     double fontSize = 18,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) => GoogleFonts.amiri(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: 2.0,
-  );
+  }) {
+    return GoogleFonts.amiri(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: 2.0,
+    );
+  }
 
   static TextStyle arabicVerse({
     double fontSize = 24,
     Color color = AppColors.primary,
-  }) => GoogleFonts.amiri(
-    fontSize: fontSize,
-    fontWeight: FontWeight.w600,
-    color: color,
-    height: 2.2,
-  );
+  }) {
+    return GoogleFonts.amiri(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: color,
+      height: 2.2,
+    );
+  }
 
   // ── Malayalam ─────────────────────────────────
   static TextStyle malayalamDisplay({
     double fontSize = 26,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.textPrimary,
-  }) => GoogleFonts.notoSansMalayalam(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: 1.6,
-  );
+  }) {
+    return GoogleFonts.notoSansMalayalam(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: 1.6,
+    );
+  }
 
   static TextStyle malayalamBody({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
     Color color = AppColors.textSecondary,
-  }) => GoogleFonts.notoSansMalayalam(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: 1.7,
-  );
+  }) {
+    return GoogleFonts.notoSansMalayalam(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: 1.7,
+    );
+  }
 }
 
 /// ─────────────────────────────────────────────
@@ -174,8 +197,8 @@ class AppTheme {
         brightness: Brightness.light,
         primary: AppColors.primary,
         onPrimary: AppColors.textOnPrimary,
-        primaryContainer: AppColors.primaryLight,
-        onPrimaryContainer: AppColors.textOnPrimary,
+        primaryContainer: Color(0xFFEFEFEF), // Very light gray for backgrounds
+        onPrimaryContainer: AppColors.primary,
         secondary: AppColors.gold,
         onSecondary: AppColors.textOnAccent,
         secondaryContainer: Color(0xFFF5E5C0),
@@ -210,11 +233,10 @@ class AppTheme {
         foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: AppTextStyles.englishDisplay(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
           color: AppColors.textOnPrimary,
-          letterSpacing: 0.3,
         ),
         iconTheme: const IconThemeData(color: AppColors.textOnPrimary),
       ),
@@ -242,11 +264,6 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
-          ),
         ),
       ),
 
@@ -254,10 +271,6 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          textStyle: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
         ),
       ),
 
@@ -269,10 +282,6 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -403,6 +412,8 @@ class AppTheme {
         brightness: Brightness.dark,
         primary: AppColors.goldAccent, // Gold is primary in dark mode for pop
         onPrimary: AppColors.primary,
+        primaryContainer: Color(0xFF333333), // Lighter charcoal for badges
+        onPrimaryContainer: AppColors.goldAccent,
         secondary: AppColors.gold,
         onSecondary: AppColors.primary,
         surface: AppColors.darkSurface,
@@ -410,8 +421,6 @@ class AppTheme {
         surfaceContainerHighest: AppColors.darkCard,
         outline: AppColors.darkBorder,
         outlineVariant: AppColors.darkDivider,
-        background: AppColors.darkBackground,
-        onBackground: AppColors.darkTextPrimary,
         error: Color(0xFFCF6679),
         onError: Colors.black,
       ),
@@ -424,8 +433,8 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.inter(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
           color: AppColors.goldAccent,
         ),
       ),
@@ -439,18 +448,111 @@ class AppTheme {
         ),
       ),
 
+      // ── Elevated Button ───────────────────────
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.goldAccent,
+          foregroundColor: AppColors.primary,
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      // ── Outlined Button ───────────────────────
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.goldAccent,
+          side: const BorderSide(color: AppColors.goldAccent, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      // ── Input / Text Field ────────────────────
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurface,
+        hintStyle: GoogleFonts.inter(
+          color: AppColors.darkTextSecondary,
+          fontSize: 15,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.goldAccent, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        displayLarge: GoogleFonts.inter(color: AppColors.darkTextPrimary),
-        displayMedium: GoogleFonts.inter(color: AppColors.darkTextPrimary),
-        headlineLarge: GoogleFonts.inter(color: AppColors.darkTextPrimary),
-        bodyLarge: GoogleFonts.inter(color: AppColors.darkTextSecondary),
-        bodyMedium: GoogleFonts.inter(color: AppColors.darkTextSecondary),
+        displayLarge: GoogleFonts.inter(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.darkTextPrimary,
+        ),
+        displayMedium: GoogleFonts.inter(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: AppColors.darkTextPrimary,
+        ),
+        headlineLarge: GoogleFonts.inter(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: AppColors.darkTextPrimary,
+        ),
+        headlineMedium: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.darkTextPrimary,
+        ),
+        titleLarge: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.darkTextPrimary,
+        ),
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          color: AppColors.darkTextSecondary,
+          height: 1.6,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.darkTextSecondary,
+          height: 1.5,
+        ),
+        labelLarge: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.darkTextPrimary,
+        ),
+        bodySmall: GoogleFonts.inter(
+          fontSize: 12,
+          color: AppColors.darkTextSecondary,
+        ),
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.darkBackground,
         selectedItemColor: AppColors.goldAccent,
         unselectedItemColor: AppColors.darkTextSecondary,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
       ),
 
       dividerTheme: const DividerThemeData(color: AppColors.darkDivider),
@@ -458,6 +560,18 @@ class AppTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.goldAccent,
         foregroundColor: AppColors.primary,
+      ),
+
+      // ── Chip ──────────────────────────────────
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.darkSurface,
+        selectedColor: AppColors.goldAccent,
+        labelStyle: GoogleFonts.inter(
+          fontSize: 13,
+          color: AppColors.darkTextPrimary,
+        ),
+        side: const BorderSide(color: AppColors.darkBorder),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

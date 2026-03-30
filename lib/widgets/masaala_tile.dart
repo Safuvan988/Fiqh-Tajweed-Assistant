@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:quranfiqh/core/theme/app_theme.dart';
 
 class MasaalaTile extends StatelessWidget {
   final String title;
@@ -20,17 +19,20 @@ class MasaalaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: theme.cardTheme.color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider, width: 0.8),
+          border: Border.all(color: colorScheme.outlineVariant, width: 0.8),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.05),
+              color: colorScheme.primary.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -42,7 +44,7 @@ class MasaalaTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: colorScheme.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: assetPath != null
@@ -51,8 +53,8 @@ class MasaalaTile extends StatelessWidget {
                       height: 24,
                       child: SvgPicture.asset(
                         assetPath!,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.primary,
+                        colorFilter: ColorFilter.mode(
+                          colorScheme.primary,
                           BlendMode.srcIn,
                         ),
                       ),
@@ -67,18 +69,17 @@ class MasaalaTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.englishDisplay(
-                      fontSize: 16,
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: AppTextStyles.englishBody(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -86,12 +87,10 @@ class MasaalaTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+            Icon(Icons.chevron_right_rounded, color: colorScheme.primary),
           ],
         ),
       ),
     );
   }
 }
-
-

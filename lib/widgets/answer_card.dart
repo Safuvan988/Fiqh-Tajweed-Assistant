@@ -77,6 +77,7 @@ class _AnswerCardState extends State<AnswerCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       // The AnswerCard has exactly the layout of the rich payload.
@@ -90,7 +91,7 @@ class _AnswerCardState extends State<AnswerCard> {
                 setState(() => _isRulingExpanded = !_isRulingExpanded),
             style: AppTextStyles.englishBody(
               fontSize: 15,
-              color: AppColors.textPrimary,
+              color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -103,7 +104,9 @@ class _AnswerCardState extends State<AnswerCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F0ED), // Light Gray with a Golden tint
+              color: theme.colorScheme.brightness == Brightness.dark 
+                  ? theme.colorScheme.surfaceContainerHighest 
+                  : const Color(0xFFF2F0ED),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.scriptureGold.withValues(alpha: 0.15),
@@ -138,7 +141,7 @@ class _AnswerCardState extends State<AnswerCard> {
                   '(${widget.quranReference!})',
                   style: AppTextStyles.englishCaption(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -148,7 +151,7 @@ class _AnswerCardState extends State<AnswerCard> {
                     textAlign: TextAlign.center,
                     style: AppTextStyles.englishBody(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],
@@ -163,7 +166,9 @@ class _AnswerCardState extends State<AnswerCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F0ED), // Light Gray with a Golden tint
+              color: theme.colorScheme.brightness == Brightness.dark 
+                  ? theme.colorScheme.surfaceContainerHighest 
+                  : const Color(0xFFF2F0ED),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: AppColors.scriptureGold.withValues(alpha: 0.15),
@@ -198,7 +203,7 @@ class _AnswerCardState extends State<AnswerCard> {
                   '(${widget.hadithReference!})',
                   style: AppTextStyles.englishCaption(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -208,7 +213,7 @@ class _AnswerCardState extends State<AnswerCard> {
                     textAlign: TextAlign.center,
                     style: AppTextStyles.englishBody(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],
@@ -225,7 +230,7 @@ class _AnswerCardState extends State<AnswerCard> {
             onToggle: () => setState(() => _isFiqhExpanded = !_isFiqhExpanded),
             style: AppTextStyles.englishBody(
               fontSize: 14,
-              color: AppColors.textPrimary,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ],
@@ -233,12 +238,12 @@ class _AnswerCardState extends State<AnswerCard> {
         // 5. Other Views
         if (widget.data.otherViews != null) ...[
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Other Views',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -246,14 +251,16 @@ class _AnswerCardState extends State<AnswerCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1E9DE),
+              color: theme.colorScheme.brightness == Brightness.dark 
+                  ? theme.colorScheme.surfaceContainerHighest 
+                  : const Color(0xFFF1E9DE),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               widget.data.otherViews!,
               style: AppTextStyles.englishBody(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

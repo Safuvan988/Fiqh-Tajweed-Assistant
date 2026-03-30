@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:quranfiqh/core/theme/app_theme.dart';
 import 'package:quranfiqh/services/audio_service.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
@@ -60,51 +59,11 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     return "$minutes:$seconds";
   }
 
-  Widget _buildPlayButton() {
-    // Show spinner if playing but no duration (buffering)
-    if (widget.isPlaying && _duration == Duration.zero) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-        ),
-      );
-    }
-
-    return IconButton(
-      onPressed: widget.onTap,
-      icon: widget.isPlaying
-          ? SizedBox(
-              width: 42,
-              height: 42,
-              child: SvgPicture.asset(
-                'assets/icons/pause-stroke-rounded.svg',
-                semanticsLabel: 'Pause',
-                colorFilter: const ColorFilter.mode(
-                  AppColors.primary,
-                  BlendMode.srcIn,
-                ),
-              ),
-            )
-          : SizedBox(
-              width: 42,
-              height: 42,
-              child: SvgPicture.asset(
-                'assets/icons/play-stroke-rounded.svg',
-                semanticsLabel: 'Play',
-                colorFilter: const ColorFilter.mode(
-                  AppColors.primary,
-                  BlendMode.srcIn,
-                ),
-              ),
-            ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     double progress = 0.0;
     if (_duration.inMilliseconds > 0) {
       progress = (_position.inMilliseconds / _duration.inMilliseconds).clamp(
@@ -118,16 +77,16 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       child: Row(
         children: [
           // Play / Pause Button / Loading
-          _buildPlayButton(),
+          _buildPlayButton(colorScheme),
           // Slider
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
                 trackHeight: 4,
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.primary.withValues(alpha: 0.15),
-                thumbColor: AppColors.primary,
-                overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                activeTrackColor: colorScheme.primary,
+                inactiveTrackColor: colorScheme.primary.withValues(alpha: 0.15),
+                thumbColor: colorScheme.primary,
+                overlayColor: colorScheme.primary.withValues(alpha: 0.2),
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
               ),
@@ -145,12 +104,44 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
           // Timer
           Text(
             '${_formatDuration(_position)} / ${_formatDuration(_duration)}',
-            style: AppTextStyles.englishCaption(
-              fontSize: 11,
-              color: AppColors.textLight,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlayButton(ColorScheme colorScheme) {
+    // Show spinner if playing but no duration (buffering)
+    if (widget.isPlaying && _duration == Duration.zero) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colorScheme.primary,
+          ),
+        ),
+      );
+    }
+
+    return IconButton(
+      onPressed: widget.onTap,
+      icon: SizedBox(
+        width: 42,
+        height: 42,
+        child: SvgPicture.asset(
+          widget.isPlaying
+              ? 'assets/icons/pause-stroke-rounded.svg'
+              : 'assets/icons/play-stroke-rounded.svg',
+          semanticsLabel: widget.isPlaying ? 'Pause' : 'Play',
+          colorFilter: ColorFilter.mode(colorScheme.primary, BlendMode.srcIn),
+        ),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:quranfiqh/core/theme/app_theme.dart';
+// import 'package:quranfiqh/core/theme/app_theme.dart';
 import 'package:quranfiqh/screens/ask/ask_screen.dart';
 import 'package:quranfiqh/screens/home/home_screen.dart';
 import 'package:quranfiqh/screens/learn/learn_screen.dart';
@@ -88,13 +88,21 @@ class _AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.divider, width: 0.8)),
+        color: colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant,
+            width: 0.8,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: .06),
+            color: colorScheme.primary.withValues(alpha: .06),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -141,6 +149,9 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -150,7 +161,8 @@ class _NavButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: .10): Colors.transparent,
+              ? colorScheme.primary.withValues(alpha: .10)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -166,7 +178,9 @@ class _NavButton extends StatelessWidget {
                   assetPath,
                   semanticsLabel: label,
                   colorFilter: ColorFilter.mode(
-                    selected ? AppColors.primary : AppColors.textLight,
+                    selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.4),
                     BlendMode.srcIn,
                   ),
                 ),
@@ -175,13 +189,13 @@ class _NavButton extends StatelessWidget {
             const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
-              style:
-                  AppTextStyles.englishCaption(
-                    fontSize: 11,
-                    color: selected ? AppColors.primary : AppColors.textLight,
-                  ).copyWith(
+              style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                  ),
+                    color: selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.4),
+                  ) ??
+                  const TextStyle(),
               child: Text(label),
             ),
           ],

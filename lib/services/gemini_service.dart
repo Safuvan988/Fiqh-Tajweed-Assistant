@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:quranfiqh/services/settings_service.dart';
 
 class GeminiService {
   static String get apiKey =>
@@ -10,19 +11,22 @@ class GeminiService {
 
   static Future<Map<String, dynamic>> getAnswer(String userInput) async {
     final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=$apiKey",
     );
 
+    final langName = _getLanguageName();
     final prompt =
         """
-You are a strict Islamic assistant. Respond in same language as user.
+You are a highly accurate and strict Islamic scholar assistant.
+CRITICAL: You MUST respond entirely in $langName, regardless of the language the user types in.
 
 Rules:
-- Follow Shafi‘i fiqh by default.
+- Give highly accurate rulings based exclusively on authentic, well-established classical sources.
+- Follow ${_getMadhabName()} fiqh by default.
 - If the user explicitly asks about another madhab (Hanafi, Maliki, or Hanbali), answer according to that specific madhab ONLY.
 - Do NOT mention other madhabs unless explicitly asked.
 - Do NOT mix madhabs in a single response.
-- Keep answers short and clear.
+${_getStylePrompt()}
 
 Return response ONLY in this JSON format:
 {
@@ -37,13 +41,11 @@ Return response ONLY in this JSON format:
 }
 
 Rules:
-- Ruling = 1 line
-- Qur’an must be Arabic if available, else empty ""
-- Qur’an Translation = Meaning in the user's language
+- Qur'an must be Arabic if available, else empty ""
+- Qur'an Translation = Meaning in the user's language
 - Hadith Arabic = Arabic text of the hadith if available, else empty ""
 - Hadith Translation = Meaning in the user's language
 - Hadith Reference = short reference only
-- Explanation = 1–2 lines
 
 If unsure:
 {
@@ -120,15 +122,16 @@ Question: $userInput
 
   static Future<Map<String, dynamic>> getDailyContent() async {
     final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey",
     );
 
     final prompt = """
 Generate daily Islamic content for a Home Page in JSON format.
 Include:
 1. Verse of the Day: Arabic text, English translation, and Surah name with verse number.
-2. Daily Masa'la: A short title (question-like) and a 1-sentence ruling/explanation.
-3. Tajweed Tip: A short title (rule name) and a 1-sentence simple explanation.
+2. Daily Masa'la: A short title (question-like), a 1-sentence subtitle, and a 3-5 sentence detailed 'details' explanation.
+3. Tajweed Tip: A short title (rule name), a 1-sentence subtitle, and a 3-5 sentence detailed 'details' explanation.
+4. Daily Dhikr: A short title (dhikr text/name), a 1-sentence subtitle, and a 3-4 sentence detailed 'details' explanation.
 
 Return response ONLY in this JSON format:
 {
@@ -139,15 +142,22 @@ Return response ONLY in this JSON format:
   },
   "masala": {
     "title": "...",
-    "subtitle": "..."
+    "subtitle": "...",
+    "details": "..."
   },
   "tajweed": {
     "title": "...",
-    "subtitle": "..."
+    "subtitle": "...",
+    "details": "..."
+  },
+  "dhikr": {
+    "title": "...",
+    "subtitle": "...",
+    "details": "..."
   }
 }
 
-Use authentic sources. Keep it brief and encouraging.
+Use authentic sources. Keep titles brief. The 'details' field should be educational and encouraging.
 """;
 
     try {
@@ -174,7 +184,7 @@ Use authentic sources. Keep it brief and encouraging.
       }
     } catch (e) {
       debugPrint("Gemini Daily Content Error: $e");
-      // Fallback
+      // Fallback with detailed descriptions
       return {
         "verse": {
           "arabic": "إِنَّ مَعَ الْعُسْرِ يُسْرًا",
@@ -183,13 +193,58 @@ Use authentic sources. Keep it brief and encouraging.
         },
         "masala": {
           "title": "Importance of Intention (Niyyah)",
-          "subtitle": "Actions are judged by intentions; always renew your niyyah before starting any worship."
+          "subtitle": "Actions are judged by intentions; always renew your niyyah before starting any worship.",
+          "details": "According to the Shafi'i school, the intention (niyyah) is a pillar of every act of worship. It must be made in the heart at the time the act begins. For prayers, it occurs during the Takbiratul Ihram. For fasting, it is required each night for the following day's fast. Sincerity in intention ensures that the act is for Allah's sake alone."
         },
         "tajweed": {
           "title": "Mudd (Prolongation)",
-          "subtitle": "Naturally prolong long vowels for two counts when not followed by hamzah or sukoon."
+          "subtitle": "Naturally prolong long vowels for two counts when not followed by hamzah or sukoon.",
+          "details": "Al-Mudd Al-Tabi'i (Natural Prolongation) occurs when one of the three letters of Mudd—Alif, Wow, or Ya—is preceded by a compatible harakah (Fatha for Alif, Damma for Wow, and Kasra for Ya) and is not followed by a Hamzah or Sukoon. It is held for two counts (harakat), which is approximately the time take to fold or unfold a finger. Mastering this ensures the correct rhythm of the Qur'an."
+        },
+        "dhikr": {
+          "title": "SubhanAllah wa Bihamdihi",
+          "subtitle": "Glorify Allah and praise Him; a simple phrase with immense weight.",
+          "details": "The Prophet ﷺ said that whoever says 'SubhanAllah wa Bihamdihi' 100 times a day, their sins will be forgiven even if they are like the foam of the sea. This dhikr is beloved to Ar-Rahman (The Most Merciful) and is light on the tongue but heavy on the scale of deeds. It combines glorifying Allah's perfection with praising His countless blessings."
         }
       };
+    }
+  }
+
+  static String _getLanguageName() {
+    final lang = SettingsService().language;
+    switch (lang) {
+      case AppLanguage.english:
+        return "English";
+      case AppLanguage.malayalam:
+        return "Malayalam (മലയാളം)";
+      case AppLanguage.arabic:
+        return "Arabic (العربية)";
+    }
+  }
+
+  static String _getMadhabName() {
+    final m = SettingsService().madhab;
+    switch (m) {
+      case Madhab.shafii:
+        return "Shafi‘i";
+      case Madhab.hanafi:
+        return "Hanafi";
+      case Madhab.maliki:
+        return "Maliki";
+      case Madhab.hanbali:
+        return "Hanbali";
+    }
+  }
+
+  static String _getStylePrompt() {
+    final style = SettingsService().answerStyle;
+    switch (style) {
+      case AnswerStyle.concise:
+        return "COMMAND: You MUST be strictly CONCISE. Provide ONLY the ruling in exactly 1 direct sentence. Zero explanation or context is permitted.";
+      case AnswerStyle.detailed:
+        return "COMMAND: You MUST be DETAILED. Provide a clear ruling (2-3 lines) followed by a comprehensive explanation (3-4 lines) regarding context and conditions.";
+      case AnswerStyle.scholarly:
+        return "COMMAND: You MUST be SCHOLARLY and PROFOUND. Provide the ruling clearly, then provide a long, academic explanation (5-8 heavy lines) citing deep fiqh principles and analytical proofs.";
     }
   }
 
